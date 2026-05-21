@@ -1,14 +1,16 @@
-#include <stdio.h>
-#include <stdlib.h>
+
 //===========================================
 // Main entry point for Lunaris Language
 // Interpreted Shorten to Lun for easier use in command line
 //===========================================
+#include <stdio.h>
+#include <stdlib.h>
 
-// run the given code to interpret it later
-void run(const char* code) {
-    // for now just print the code
-    printf("[Lunaris] : Running code:\n%s\n", code);
+#include "errorHandling.h"
+
+void run(const char* source){
+    printf("[Lunaris] : Running source code...\n");
+    printf("%s\n", source);
 }
 
 // run a file with the given filename
@@ -45,9 +47,17 @@ void runFile(const char* filename) {
     buffer[fileSize] = '\0';
     fclose(file);
 
-    // run file into buffer
-    run(buffer);
-
+    // check if there was an error while running the file
+    if(hadError) {
+        printf("[Lunaris] : Error occurred while running file %s\n", filename);
+        free(buffer); // free the buffer before returning
+        return;
+    } else {
+        // run file into buffer
+        run(buffer);
+        hadError = 0; // reset error flag for next run
+    }
+    
     // free the buffer
     free(buffer);
 }
@@ -65,7 +75,9 @@ void runPromt() {
     }
 }
 
+// main entry point for the program
 int main(int argc, char* argv[]) {
+    // if there are more than 2 arguments, print an error message and return
     if (argc > 2) {
         printf("[Lunaris] : Usage Lun <file>\n");
     }
