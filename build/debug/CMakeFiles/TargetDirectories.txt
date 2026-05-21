@@ -1,3 +1,0 @@
-C:/Gaza/Code/Lunaris/build/debug/CMakeFiles/Lunaris.dir
-C:/Gaza/Code/Lunaris/build/debug/CMakeFiles/edit_cache.dir
-C:/Gaza/Code/Lunaris/build/debug/CMakeFiles/rebuild_cache.dir
