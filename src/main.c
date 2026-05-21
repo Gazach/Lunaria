@@ -7,10 +7,19 @@
 #include <stdlib.h>
 
 #include "errorHandling.h"
+#include "lexer.h"
 
-void run(const char* source){
-    printf("[Lunaris] : Running source code...\n");
-    printf("%s\n", source);
+void run(const char* source) {
+    Lexer lexer;
+    initLexer(&lexer, source);
+
+    TokenArray tokens = scanTokens(&lexer);
+
+    for (int i = 0; i < tokens.count; i++) {
+        printToken(tokens.data[i]);
+    }
+
+    freeTokenArray(&tokens);
 }
 
 // run a file with the given filename
