@@ -43,8 +43,8 @@ if errorlevel 1 (
     goto end
 )
 
-echo [run] Running Lunaris.exe...
-Lunaris.exe
+echo [run] Running Lun.exe...
+Lun.exe
 
 :end
 endlocal
