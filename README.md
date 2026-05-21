@@ -1,4 +1,4 @@
-# Lunaris
+# ☀️ Lunaris
 
 A simple interpreted programming language written in C.
 
