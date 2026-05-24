@@ -12,12 +12,12 @@ No real-world goal. Just the joy of building something from nothing and learning
 
 ## Inspiration
 
-- [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom
+- [Lox Language](https://craftinginterpreters.com/the-lox-language.html) — the language described in *Crafting Interpreters*, which served as a structural reference
 - [Z#](https://youtu.be/JP9n5wHyemU?si=PBMky-VeUWTva64V) by AstroSam
 
 ## Reference
 
-- [Lox Language](https://craftinginterpreters.com/the-lox-language.html) — the language described in *Crafting Interpreters*, which served as a structural reference
+- [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom
 
 ## Features
 

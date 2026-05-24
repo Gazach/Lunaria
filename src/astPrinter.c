@@ -1,9 +1,13 @@
 #include "astPrinter.h"
 #include <stdio.h>
 
+// Helper function to print indentation for better readability of the AST.
+
 void print_indent(int indent) {
 	for (int i = 0; i < indent; i++) printf("  ");
 }
+
+// Function to print an expression node in the AST with proper indentation.
 
 void print_expr(const Expr *expr, int indent) {
 	if (!expr) {
@@ -41,6 +45,8 @@ void print_expr(const Expr *expr, int indent) {
 			break;
 	}
 }
+
+// Function to print a statement node in the AST with proper indentation.
 
 void print_stmt(const Stmt *stmt, int indent) {
 	if (!stmt) {
