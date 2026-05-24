@@ -8,7 +8,8 @@ typedef enum { //define expression types
     EXPR_VARIABLE,
     EXPR_BINARY,
     EXPR_UNARY,
-    EXPR_CALL,
+    EXPR_CALL, // New expression type for function calls
+    EXPR_GROUPING, // New expression type for grouping parentheses like (a + b)
 } ExprType;
 
 struct Expr { // define the structure of an expression
@@ -36,7 +37,13 @@ struct Expr { // define the structure of an expression
             struct Expr **args;
             int arg_count;
         } call;
+        struct {
+            struct Expr *expression;
+        } grouping;
     };
 };
+
+
+void expr_free(struct Expr *expr);
 
 #endif

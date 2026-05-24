@@ -28,7 +28,7 @@ static const Keyword keywords[] = {
     { "else",     ELSE     },
     { "false",    FALSE    },
     { "for",      FOR      },
-    { "function", FUNCTION },
+    { "fn", FUNCTION },
     { "if",       IF       },
     { "import",   IMPORT   },
     { "nil",      NIL      },
