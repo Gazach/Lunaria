@@ -25,7 +25,11 @@ No real-world goal. Just the joy of building something from nothing and learning
 
 ## Building
 
-Requires [CMake](https://cmake.org/) 3.22+ and a C17-compatible compiler.
+Requires :
+
+- [CMake](https://cmake.org/) 3.22+ and a C17-compatible compiler.
+- [ninja](https://ninja-build.org/) 1.12.1+
+- [Clang](https://clang.llvm.org/) version 21.1.0+ (recommended)
 
 ```bat
 build.bat release
