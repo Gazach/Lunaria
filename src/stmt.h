@@ -15,7 +15,11 @@ typedef enum { //define statement types
     STMT_FUNCTION_DECLARATION, // New statement type for function declarations like "fn add(a: int, b: int) -> int { return a + b; }"
     STMT_FOR, // New statement type for for loops like "for i in 0..10 { print(i); }"
     STMT_BLOCK, // New statement type for blocks of statements like "{ stmt1; stmt2; }"
-
+    STMT_SWITCH, // New statement type for switch statements like "switch x { case 1: stmt1; break; case 2: stmt2; break; default: stmt3; }"
+    STMT_CASE, // New statement type for case branches of switch statements
+    STMT_BREAK, // New statement type for break statements like "break;"
+    STMT_CONTINUE, // New statement type for continue statements like "continue;"
+    STMT_DEFAULT // New statement type for default branches of switch statements
 } StmtType;
 
 struct Stmt { // define the structure of a statement
@@ -75,6 +79,25 @@ struct Stmt { // define the structure of a statement
             struct Stmt **statements;
             int statement_count;
         } block_stmt;
+        struct {
+            Expr *expression;
+            struct Stmt **cases;
+            int case_count;
+            struct Stmt *default_case;
+        } switch_stmt;
+        struct {
+            Expr *value;
+            struct Stmt **body;
+            int body_count;
+        } case_stmt;
+        struct {
+        } break_stmt;
+        struct {
+        } continue_stmt;
+        struct {
+            struct Stmt **cases;
+            int case_count;
+        } default_stmt;  
     };
 };
 

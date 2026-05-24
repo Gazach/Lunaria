@@ -100,10 +100,48 @@ struct Stmt *stmt_for(char *iterator_name, Expr *iterable, struct Stmt **body, i
     return s;
 }
 
+// Create a new block statement with the given list of statements.
 struct Stmt *stmt_block(struct Stmt **statements, int statement_count) {
     struct Stmt *s = stmt_new(STMT_BLOCK);
     s->block_stmt.statements = statements;
     s->block_stmt.statement_count = statement_count;
+    return s;
+}
+
+// Create a new switch statement with the given expression, cases, and default case.
+struct Stmt *stmt_switch(Expr *expression, struct Stmt **cases, int case_count, struct Stmt *default_case) {
+    struct Stmt *s = stmt_new(STMT_SWITCH);
+    s->switch_stmt.expression = expression;
+    s->switch_stmt.cases = cases;
+    s->switch_stmt.case_count = case_count;
+    s->switch_stmt.default_case = default_case;
+    return s;
+}
+
+// Create a new case statement with the given value expression and body.
+struct Stmt *stmt_case(Expr *value, struct Stmt **body, int body_count) {
+    struct Stmt *s = stmt_new(STMT_CASE);
+    s->case_stmt.value = value;
+    s->case_stmt.body = body;
+    s->case_stmt.body_count = body_count;
+    return s;
+}
+
+// Create a new break statement.
+struct Stmt *stmt_break() {
+    return stmt_new(STMT_BREAK);
+}
+
+// Create a new continue statement.
+struct Stmt *stmt_continue() {
+    return stmt_new(STMT_CONTINUE);
+}
+
+// Create a new default case statement with the given list of cases.
+struct Stmt *stmt_default(struct Stmt **cases, int case_count) {
+    struct Stmt *s = stmt_new(STMT_DEFAULT);
+    s->default_stmt.cases = cases;
+    s->default_stmt.case_count = case_count;
     return s;
 }
 
@@ -183,6 +221,29 @@ void stmt_free(struct Stmt *stmt) {
                 stmt_free(stmt->block_stmt.statements[i]);
             }
             free(stmt->block_stmt.statements);
+            break;
+        case STMT_SWITCH:
+            expr_free(stmt->switch_stmt.expression);
+            for (int i = 0; i < stmt->switch_stmt.case_count; i++) {
+                stmt_free(stmt->switch_stmt.cases[i]);
+            }
+            free(stmt->switch_stmt.cases);
+            stmt_free(stmt->switch_stmt.default_case);
+            break;
+        case STMT_CASE:
+            expr_free(stmt->case_stmt.value);
+            for (int i = 0; i < stmt->case_stmt.body_count; i++) {
+                stmt_free(stmt->case_stmt.body[i]);
+            }
+            free(stmt->case_stmt.body);
+            break;
+        case STMT_BREAK:
+        case STMT_CONTINUE: 
+        case STMT_DEFAULT:
+            for (int i = 0; i < stmt->default_stmt.case_count; i++) {
+                stmt_free(stmt->default_stmt.cases[i]);
+            }
+            free(stmt->default_stmt.cases);
             break;
     }
     free(stmt);
