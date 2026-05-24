@@ -1,5 +1,4 @@
 #pragma once
-#include <string.h>
 
 // ALL TOKEN TYPES FOR LUNARIS LANGUAGE
 // Token used for lexing and parsing where each token has a type and a value
