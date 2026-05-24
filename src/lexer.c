@@ -31,7 +31,6 @@ static const Keyword keywords[] = {
     { "function", FUNCTION },
     { "if",       IF       },
     { "import",   IMPORT   },
-    { "let",      LET      },
     { "nil",      NIL      },
     { "or",       OR       },
     { "print",    PRINT    },

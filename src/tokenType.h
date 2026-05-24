@@ -20,7 +20,7 @@ enum TokenType {
     
     // Keywords
     CLASS, ELSE, FALSE, FUNCTION, FOR, IF, NIL,
-    RETURN, SUPER, THIS, TRUE, LET, CONST, WHILE, 
+    RETURN, SUPER, THIS, TRUE, CONST, WHILE, 
     CONTINUE, BREAK, ELIF, IMPORT, PRINT,
 
     // Literals

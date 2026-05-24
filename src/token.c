@@ -37,7 +37,6 @@ static const char* tokenTypeName(TokenType type) {
         case SUPER:         return "SUPER";
         case THIS:          return "THIS";
         case TRUE:          return "TRUE";
-        case LET:           return "LET";
         case CONST:         return "CONST";
         case WHILE:         return "WHILE";
         case CONTINUE:      return "CONTINUE";
