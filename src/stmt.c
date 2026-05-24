@@ -36,6 +36,22 @@ then_count, struct Stmt **else_branch, int else_count) {
     return s;
 }
 
+// Create a new else statement with the given list of statements.
+struct Stmt *stmt_else(struct Stmt **statements, int statement_count) {
+    struct Stmt *s = stmt_new(STMT_ELSE);
+    s->else_stmt.statements = statements;
+    s->else_stmt.statement_count = statement_count;
+    return s;
+}
+
+struct Stmt *stmt_elif(Expr *condition, struct Stmt **body, int body_count) {
+    struct Stmt *s = stmt_new(STMT_ELIF);
+    s->elif_stmt.condition = condition;
+    s->elif_stmt.body = body;
+    s->elif_stmt.body_count = body_count;
+    return s;
+}
+
 // Create a new while statement with the given condition and body.
 struct Stmt *stmt_while(Expr *condition, struct Stmt **body, int body_count) {
     struct Stmt *s = stmt_new(STMT_WHILE);
@@ -74,6 +90,23 @@ param_types, int param_count, char *return_type, struct Stmt **body, int body_co
     return s;
 }
 
+// Create a new for statement with the given iterator name, iterable expression, and body.
+struct Stmt *stmt_for(char *iterator_name, Expr *iterable, struct Stmt **body, int body_count) {
+    struct Stmt *s = stmt_new(STMT_FOR);
+    s->for_stmt.iterator_name = iterator_name;
+    s->for_stmt.iterable = iterable;
+    s->for_stmt.body = body;
+    s->for_stmt.body_count = body_count;
+    return s;
+}
+
+struct Stmt *stmt_block(struct Stmt **statements, int statement_count) {
+    struct Stmt *s = stmt_new(STMT_BLOCK);
+    s->block_stmt.statements = statements;
+    s->block_stmt.statement_count = statement_count;
+    return s;
+}
+
 // Free the memory used by a statement and its associated data.
 void stmt_free(struct Stmt *stmt) {
     if (!stmt) return;
@@ -95,6 +128,19 @@ void stmt_free(struct Stmt *stmt) {
                 stmt_free(stmt->if_stmt.else_branch[i]);
             }
             free(stmt->if_stmt.else_branch);
+            break;
+        case STMT_ELSE:
+            for (int i = 0; i < stmt->else_stmt.statement_count; i++) {
+                stmt_free(stmt->else_stmt.statements[i]);
+            }
+            free(stmt->else_stmt.statements);
+            break;
+        case STMT_ELIF:
+            expr_free(stmt->elif_stmt.condition);
+            for (int i = 0; i < stmt->elif_stmt.body_count; i++) {
+                stmt_free(stmt->elif_stmt.body[i]);
+            }
+            free(stmt->elif_stmt.body);
             break;
         case STMT_WHILE:
             expr_free(stmt->while_stmt.condition);
@@ -123,6 +169,20 @@ void stmt_free(struct Stmt *stmt) {
                 stmt_free(stmt->function_declaration_stmt.body[i]);
             }
             free(stmt->function_declaration_stmt.body);
+            break;
+        case STMT_FOR:
+            free(stmt->for_stmt.iterator_name);
+            expr_free(stmt->for_stmt.iterable);
+            for (int i = 0; i < stmt->for_stmt.body_count; i++) {
+                stmt_free(stmt->for_stmt.body[i]);
+            }
+            free(stmt->for_stmt.body);
+            break;
+        case STMT_BLOCK:
+            for (int i = 0; i < stmt->block_stmt.statement_count; i++) {
+                stmt_free(stmt->block_stmt.statements[i]);
+            }
+            free(stmt->block_stmt.statements);
             break;
     }
     free(stmt);
