@@ -38,6 +38,8 @@ static const char* tokenTypeName(TokenType type) {
         case TYPE_STRING:           return "TYPE_STRING";
         case TYPE_BOOL:             return "TYPE_BOOL";
         case TYPE_FLOATING_POINT:   return "TYPE_FLOATING_POINT";
+        case TYPE_CHARACTER:        return "TYPE_CHARACTER";
+        case VOID:             return "VOID";
         case SUPER:                 return "SUPER";
         case THIS:                  return "THIS";
         case TRUE:                  return "TRUE";

@@ -31,7 +31,7 @@ static const Keyword keywords[] = {
     { "fn", FUNCTION },
     { "if",       IF       },
     { "import",   IMPORT   },
-    { "nil",      NIL      },
+    { "null",      NIL      },
     { "or",       OR       },
     { "print",    PRINT    },
     { "return",   RETURN   },
@@ -42,7 +42,9 @@ static const Keyword keywords[] = {
     { "int",       TYPE_INT},
     { "string",    TYPE_STRING},
     { "bool",      TYPE_BOOL},
-    { "float",     TYPE_FLOATING_POINT}
+    { "float",     TYPE_FLOATING_POINT},
+    { "char",      TYPE_CHARACTER},
+    { "void",      VOID},
 };
 
 // Returns the TokenType for the given identifier, or IDENTIFIER if not a keyword.
