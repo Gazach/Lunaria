@@ -55,10 +55,38 @@ struct Expr *expr_call(char *name, struct Expr **args, int arg_count) {
     return e;
 }
 
+// Create a new grouping expression with the given sub-expression.
 struct Expr *expr_grouping(struct Expr *expression) {
     struct Expr *e = malloc(sizeof(struct Expr));
     e->type = EXPR_GROUPING;
     e->left = expression;
+    return e;
+}
+
+// Create a new index expression with the given array and index sub-expressions.
+struct Expr *expr_index(struct Expr *array, struct Expr *index) {
+    struct Expr *e = malloc(sizeof(struct Expr));
+    e->type = EXPR_INDEX;
+    e->index.array = array;
+    e->index.index = index;
+    return e;
+}
+
+// Create a new member access expression with the given object and member name.
+struct Expr *expr_member_access(struct Expr *object, char *member) {
+    struct Expr *e = malloc(sizeof(struct Expr));
+    e->type = EXPR_MEMBER_ACCESS;
+    e->member_access.object = object;
+    e->member_access.member = member;
+    return e;
+}
+
+struct Expr *expr_ternary(struct Expr *condition, struct Expr *then_branch, struct Expr *else_branch) {
+    struct Expr *e = malloc(sizeof(struct Expr));
+    e->type = EXPR_TERNARY;
+    e->ternary.condition = condition;
+    e->ternary.then_branch = then_branch;
+    e->ternary.else_branch = else_branch;
     return e;
 }
 
@@ -87,6 +115,21 @@ void expr_free(struct Expr *e) {
             break;
         case EXPR_GROUPING:
             expr_free(e->left);
+            break;
+        case EXPR_INDEX:
+            expr_free(e->index.array);
+            expr_free(e->index.index);
+            break;
+        case EXPR_MEMBER_ACCESS:
+            expr_free(e->member_access.object);
+            free(e->member_access.member);
+            break;
+        case EXPR_TERNARY:
+            expr_free(e->ternary.condition);
+            expr_free(e->ternary.then_branch);
+            expr_free(e->ternary.else_branch);
+            break;
+        default:
             break;
     }
     free(e);

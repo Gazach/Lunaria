@@ -145,9 +145,19 @@ struct Stmt *stmt_default(struct Stmt **cases, int case_count) {
     return s;
 }
 
+// Create a new import statement with the given module name.
 struct Stmt *stmt_import(char *module_name) {
     struct Stmt *s = stmt_new(STMT_IMPORT);
     s->import_stmt.module_name = module_name;
+    return s;
+}
+
+// Create a new class declaration statement with the given name and body.
+struct Stmt *stmt_class_declaration(char *name, struct Stmt **body, int body_count) {
+    struct Stmt *s = stmt_new(STMT_CLASS_DECLARATION);
+    s->class_declaration_stmt.name = name;
+    s->class_declaration_stmt.body = body;
+    s->class_declaration_stmt.body_count = body_count;
     return s;
 }
 
@@ -253,6 +263,13 @@ void stmt_free(struct Stmt *stmt) {
             break;
         case STMT_IMPORT:
             free(stmt->import_stmt.module_name);
+            break;
+        case STMT_CLASS_DECLARATION:
+            free(stmt->class_declaration_stmt.name);
+            for (int i = 0; i < stmt->class_declaration_stmt.body_count; i++) {
+                stmt_free(stmt->class_declaration_stmt.body[i]);
+            }
+            free(stmt->class_declaration_stmt.body);
             break;
     }
     free(stmt);

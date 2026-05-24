@@ -159,6 +159,12 @@ void print_stmt(const Stmt *stmt, int indent) {
 		case STMT_IMPORT:
 			print_indent(indent); printf("Import: %s\n", stmt->import_stmt.module_name);
 			break;
+		case STMT_CLASS_DECLARATION:
+			print_indent(indent); printf("ClassDecl: %s\n", stmt->class_declaration_stmt.name);
+			print_indent(indent + 1); printf("Body:\n");
+			for (int i = 0; i < stmt->class_declaration_stmt.body_count; i++)
+				print_stmt(stmt->class_declaration_stmt.body[i], indent + 2);
+			break;
 		default:
 			print_indent(indent); printf("<unknown stmt>\n");
 			break;

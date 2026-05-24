@@ -20,7 +20,9 @@ typedef enum { //define statement types
     STMT_BREAK, // New statement type for break statements like "break;"
     STMT_CONTINUE, // New statement type for continue statements like "continue;"
     STMT_DEFAULT, // New statement type for default branches of switch statements
-    STMT_IMPORT // New statement type for import statements like "import math;"
+    STMT_IMPORT, // New statement type for import statements like "import math;"
+    STMT_CLASS_DECLARATION, // New statement type for class declarations like "class Point { x: int; y: int; }"'
+    
 } StmtType;
 
 struct Stmt { // define the structure of a statement
@@ -102,6 +104,11 @@ struct Stmt { // define the structure of a statement
         struct {
             char *module_name;
         } import_stmt;
+        struct {
+            char *name;
+            struct Stmt **body;
+            int body_count;
+        } class_declaration_stmt;
     };
 };
 
