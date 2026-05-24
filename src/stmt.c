@@ -145,6 +145,12 @@ struct Stmt *stmt_default(struct Stmt **cases, int case_count) {
     return s;
 }
 
+struct Stmt *stmt_import(char *module_name) {
+    struct Stmt *s = stmt_new(STMT_IMPORT);
+    s->import_stmt.module_name = module_name;
+    return s;
+}
+
 // Free the memory used by a statement and its associated data.
 void stmt_free(struct Stmt *stmt) {
     if (!stmt) return;
@@ -244,6 +250,9 @@ void stmt_free(struct Stmt *stmt) {
                 stmt_free(stmt->default_stmt.cases[i]);
             }
             free(stmt->default_stmt.cases);
+            break;
+        case STMT_IMPORT:
+            free(stmt->import_stmt.module_name);
             break;
     }
     free(stmt);

@@ -19,7 +19,8 @@ typedef enum { //define statement types
     STMT_CASE, // New statement type for case branches of switch statements
     STMT_BREAK, // New statement type for break statements like "break;"
     STMT_CONTINUE, // New statement type for continue statements like "continue;"
-    STMT_DEFAULT // New statement type for default branches of switch statements
+    STMT_DEFAULT, // New statement type for default branches of switch statements
+    STMT_IMPORT // New statement type for import statements like "import math;"
 } StmtType;
 
 struct Stmt { // define the structure of a statement
@@ -98,6 +99,9 @@ struct Stmt { // define the structure of a statement
             struct Stmt **cases;
             int case_count;
         } default_stmt;  
+        struct {
+            char *module_name;
+        } import_stmt;
     };
 };
 
