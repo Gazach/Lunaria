@@ -18,6 +18,13 @@ struct Expr *expr_literal(double value) {
     return e;
 }
 
+struct Expr *expr_string(const char *value) {
+    struct Expr *e = malloc(sizeof(struct Expr));
+    e->type             = EXPR_STRING;
+    e->string.value     = value;
+    return e;
+}
+
 // Create a new variable expression with the given name.
 struct Expr *expr_variable(char *name) {
     struct Expr *e = malloc(sizeof(struct Expr));

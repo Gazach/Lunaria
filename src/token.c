@@ -53,6 +53,9 @@ static const char* tokenTypeName(TokenType type) {
         case IDENTIFIER:            return "IDENTIFIER";
         case STRING:                return "STRING";
         case NUMBER:                return "NUMBER";
+        case SWITCH:                return "SWITCH";
+        case CASE:                  return "CASE";
+        case DEFAULT:               return "DEFAULT";
         case EOF_TOKEN:             return "EOF";
         default:                    return "UNKNOWN";
     }

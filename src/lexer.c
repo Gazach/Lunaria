@@ -45,6 +45,9 @@ static const Keyword keywords[] = {
     { "float",     TYPE_FLOATING_POINT},
     { "char",      TYPE_CHARACTER},
     { "void",      VOID},
+    { "switch",    SWITCH},
+    { "case",      CASE},
+    { "default",   DEFAULT},
 };
 
 // Returns the TokenType for the given identifier, or IDENTIFIER if not a keyword.

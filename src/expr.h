@@ -8,6 +8,7 @@ typedef enum { //define expression types
     EXPR_VARIABLE,
     EXPR_BINARY,
     EXPR_UNARY,
+    EXPR_STRING,
     EXPR_CALL, // New expression type for function calls
     EXPR_GROUPING, // New expression type for grouping parentheses like (a + b)
     EXPR_INDEX, // New expression type for indexing which arrays and lists like arr[0]
@@ -26,6 +27,9 @@ struct Expr { // define the structure of an expression
         struct {
             char *name;
         } variable;
+        struct {
+            const char *value;
+        } string;
         struct {
             char op;
             struct Expr *left;
@@ -60,7 +64,19 @@ struct Expr { // define the structure of an expression
     };
 };
 
-
+// exposed functions for creating and freeing expressions
 void expr_free(struct Expr *expr);
+
+struct Expr *expr_literal(double value);
+struct Expr *expr_variable(char *name);
+struct Expr *expr_binary(char op, struct Expr *left, struct Expr *right);
+struct Expr *expr_unary(char op, struct Expr *operand);
+struct Expr *expr_call(char *name, struct Expr **args, int arg_count);
+struct Expr *expr_grouping(struct Expr *expression);
+struct Expr *expr_index(struct Expr *array, struct Expr *index);
+struct Expr *expr_member_access(struct Expr *object, char *member);
+struct Expr *expr_ternary(struct Expr *condition, struct Expr *then_branch, struct Expr *else_branch);
+struct Expr *expr_string(const char *value);
+
 
 #endif

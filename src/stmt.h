@@ -22,7 +22,7 @@ typedef enum { //define statement types
     STMT_DEFAULT, // New statement type for default branches of switch statements
     STMT_IMPORT, // New statement type for import statements like "import math;"
     STMT_CLASS_DECLARATION, // New statement type for class declarations like "class Point { x: int; y: int; }"'
-    
+
 } StmtType;
 
 struct Stmt { // define the structure of a statement
@@ -111,5 +111,29 @@ struct Stmt { // define the structure of a statement
         } class_declaration_stmt;
     };
 };
+
+// exposed functions for creating and freeing statements
+void stmt_free(struct Stmt *stmt);
+
+struct Stmt *stmt_expr(Expr *expr);
+struct Stmt *stmt_assign(char *name, Expr *value);
+struct Stmt *stmt_if(Expr *condition, struct Stmt **then_branch, int then_count, struct Stmt **else_branch, int else_count);
+struct Stmt *stmt_else(struct Stmt **statements, int statement_count);
+struct Stmt *stmt_elif(Expr *condition, struct Stmt **body, int body_count);
+struct Stmt *stmt_while(Expr *condition, struct Stmt **body, int body_count);
+struct Stmt *stmt_return(Expr *value);
+struct Stmt *stmt_type_notation(char *type_name, Expr *value);
+struct Stmt *stmt_function_declaration(char *name, char **param_names, char **param_types, int param_count, char *return_type, struct Stmt **body, int body_count);
+struct Stmt *stmt_for(char *iterator_name, Expr *iterable, struct Stmt **body, int body_count);
+struct Stmt *stmt_block(struct Stmt **statements, int statement_count);
+struct Stmt *stmt_switch(Expr *expression, struct Stmt **cases, int case_count, struct Stmt *default_case);
+struct Stmt *stmt_case(Expr *value, struct Stmt **body, int body_count);
+struct Stmt *stmt_break();
+struct Stmt *stmt_continue();
+struct Stmt *stmt_default(struct Stmt **cases, int case_count);
+struct Stmt *stmt_import(char *module_name);
+struct Stmt *stmt_class_declaration(char *name, struct Stmt **body, int body_count);
+
+
 
 #endif
