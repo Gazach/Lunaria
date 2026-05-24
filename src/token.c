@@ -37,7 +37,6 @@ static const char* tokenTypeName(TokenType type) {
         case TYPE_INT:              return "TYPE_INT";
         case TYPE_STRING:           return "TYPE_STRING";
         case TYPE_BOOL:             return "TYPE_BOOL";
-        case TYPE_NIL:              return "TYPE_NIL";
         case TYPE_FLOATING_POINT:   return "TYPE_FLOATING_POINT";
         case SUPER:                 return "SUPER";
         case THIS:                  return "THIS";

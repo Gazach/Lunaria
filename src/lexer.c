@@ -42,7 +42,6 @@ static const Keyword keywords[] = {
     { "int",       TYPE_INT},
     { "string",    TYPE_STRING},
     { "bool",      TYPE_BOOL},
-    { "nil",       TYPE_NIL},
     { "float",     TYPE_FLOATING_POINT}
 };
 
