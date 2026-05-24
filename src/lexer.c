@@ -39,6 +39,11 @@ static const Keyword keywords[] = {
     { "this",     THIS     },
     { "true",     TRUE     },
     { "while",    WHILE    },
+    { "int",       TYPE_INT},
+    { "string",    TYPE_STRING},
+    { "bool",      TYPE_BOOL},
+    { "nil",       TYPE_NIL},
+    { "float",     TYPE_FLOATING_POINT}
 };
 
 // Returns the TokenType for the given identifier, or IDENTIFIER if not a keyword.

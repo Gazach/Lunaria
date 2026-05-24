@@ -18,6 +18,9 @@ enum TokenType {
     AND,        AND_AND,
     OR,         OR_OR,
     
+    // Data types
+    TYPE_INT, TYPE_STRING, TYPE_BOOL, TYPE_FLOATING_POINT,
+
     // Keywords
     CLASS, ELSE, FALSE, FUNCTION, FOR, IF, NIL,
     RETURN, SUPER, THIS, TRUE, CONST, WHILE, 
