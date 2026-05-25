@@ -10,46 +10,31 @@
 #include "errorHandling.h"
 #include "lexer.h"
 #include "parser.h"
+#include "interpreter.h"
 
+// Flag to indicate if a runtime error has occurred
+int hadRuntimeError = 0;
+
+// Run the given source code by lexing, parsing, and interpreting it.
 void run(const char* source) {
-    // Initialize the lexer and scan tokens from the source code
+    printf("Lexing...\n");
     Lexer lexer;
     initLexer(&lexer, source);
     TokenArray tokens = scanTokens(&lexer);
-
-    // Debug: Print all tokens
-    printf("=== TOKENS ===\n");
-    for (int i = 0; i < tokens.count; i++) {
-        printf("Token: type=%d, lexeme='%.*s', line=%d\n",
-            tokens.data[i].type,
-            tokens.data[i].length,
-            tokens.data[i].lexeme,
-            tokens.data[i].line);
-    }
-
-    if (hadError) {
-        freeTokenArray(&tokens);
-        return;
-    }
-
-    // Initialize the parser with the scanned tokens and parse them into an AST
+    printf("Parsing...\n");
     Parser *parser = initParser(tokens.data, tokens.count);
-    Expr *ast = parse(parser);
-
-    // Debug: Print the AST
-    printf("=== AST ===\n");
-    print_expr(ast, 0);
-
-    if (hadError) {
-        freeParser(parser);
-        freeTokenArray(&tokens);
-        return;
-    }
-
+    Expr *expr = parse(parser);
+    printf("Freeing parser...\n");
     freeParser(parser);
     freeTokenArray(&tokens);
+    if (expr) {
+        printf("Interpreting...\n");
+        interpreter(expr);
+        expr_free(expr); // Make sure to free the AST if you have a function for it
+    } else {
+        printf("Parsing failed. No expression to interpret.\n");
+    }
 }
-
 // run a file with the given filename
 // if the file does not exist, print an error message and return
 void runFile(const char* filename) {
@@ -60,6 +45,7 @@ void runFile(const char* filename) {
 
     if (file == NULL) {
         printf("[Lunaris] : Could not open file %s\n", filename);
+        hadError = 1;
         return;
     }
 
@@ -76,6 +62,7 @@ void runFile(const char* filename) {
     if (buffer == NULL) {
         printf("[Lunaris] : Could not allocate memory for file %s\n", filename);
         fclose(file); // close the file before returning
+        hadError = 1;
         return;
     }
 
@@ -117,6 +104,7 @@ int main(int argc, char* argv[]) {
     // if there are more than 2 arguments, print an error message and return
     if (argc > 2) {
         printf("[Lunaris] : Usage Lun <file>\n");
+        hadError = 1;
     }
     else if (argc == 2) {
         runFile(argv[1]);

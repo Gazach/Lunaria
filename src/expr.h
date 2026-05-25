@@ -1,6 +1,8 @@
 #ifndef EXPR_H
 #define EXPR_H
 
+#include "token.h"
+
 typedef struct Expr Expr;
 
 typedef enum { //define expression types
@@ -31,12 +33,12 @@ struct Expr { // define the structure of an expression
             const char *value;
         } string;
         struct {
-            char op;
+            TokenType op;
             struct Expr *left;
             struct Expr *right;
         } binary;
         struct {
-            char op;
+            TokenType op;
             struct Expr *operand;
         } unary;
         struct {
@@ -69,8 +71,8 @@ void expr_free(struct Expr *expr);
 
 struct Expr *expr_literal(double value);
 struct Expr *expr_variable(char *name);
-struct Expr *expr_binary(char op, struct Expr *left, struct Expr *right);
-struct Expr *expr_unary(char op, struct Expr *operand);
+struct Expr *expr_binary(TokenType op, struct Expr *left, struct Expr *right);
+struct Expr *expr_unary(TokenType op, struct Expr *operand);
 struct Expr *expr_call(char *name, struct Expr **args, int arg_count);
 struct Expr *expr_grouping(struct Expr *expression);
 struct Expr *expr_index(struct Expr *array, struct Expr *index);

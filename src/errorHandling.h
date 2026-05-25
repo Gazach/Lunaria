@@ -1,6 +1,7 @@
 #pragma once
 
 extern int hadError;
+
 #include "token.h"
 
 // error handling for Lunaris Language

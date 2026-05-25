@@ -34,7 +34,7 @@ struct Expr *expr_variable(char *name) {
 }
 
 // Create a new binary expression with the given operator and left/right sub-expressions.
-struct Expr *expr_binary(char op, struct Expr *left, struct Expr *right) {
+struct Expr *expr_binary(TokenType op, struct Expr *left, struct Expr *right) {
     struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_BINARY;
     e->binary.op        = op;
@@ -44,7 +44,7 @@ struct Expr *expr_binary(char op, struct Expr *left, struct Expr *right) {
 }
 
 // Create a new unary expression with the given operator and operand.
-struct Expr *expr_unary(char op, struct Expr *operand) {
+struct Expr *expr_unary(TokenType op, struct Expr *operand) {
     struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_UNARY;
     e->unary.op         = op;
