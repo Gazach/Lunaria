@@ -4,6 +4,7 @@
 #include "token.h"
 #include "expr.h"
 #include "stmt.h"
+#include "errorHandling.h"
 #include "tokenType.h"
 
 // Define the structure of the parser, which holds the list of tokens and the current position in that list.
@@ -11,6 +12,7 @@ typedef struct {
     Token *data;
     int token_count;
     int current;
+    int line;
 } Parser;
 
 //===========================
@@ -23,6 +25,7 @@ Parser *initParser(Token *tokens, int token_count) {
     parser->data = tokens;
     parser->token_count = token_count;
     parser->current = 0;
+    parser->line = 1; // Initialize the line number to 1 for error reporting
     return parser;
 }
 
@@ -68,6 +71,52 @@ static bool match(Parser *parser, const TokenType *types, int type_count) {
     return false;
 }
 
+// Consume a token of the expected type, advancing the parser. If the token does not match, report an error.
+Token *consume(Parser *parser, TokenType type, const char *message) {
+    if (check(parser, type)) return advance(parser);
+    // Handle error: expected token of type 'type'
+    error(*peek(parser), message);
+    return NULL;
+}
+
+// Report a parsing error with the given message and the current line number.
+static void parseError(Parser *parser, const char *message) {
+    error(*peek(parser), message);
+    return;
+}
+
+// Synchronize the parser after an error by advancing until we find a statement boundary.
+// This helps to prevent cascading errors and allows the parser to continue parsing after an error.
+void synchronize(Parser *parser) {
+    advance(parser);
+
+    while (!isAtEnd(parser)) {
+        if (previous(parser)->type == SEMICOLON) return;
+
+        switch (peek(parser)->type) {
+            case CLASS:
+            case FUNCTION:
+            case FOR:
+            case IF:
+            case WHILE:
+            case RETURN:
+            case ELSE:
+            case ELIF:
+            case IMPORT:
+            case PRINT:
+            case SWITCH:
+            case CASE:
+            case DEFAULT:
+                return;
+            default:
+                break;
+        }
+
+        advance(parser);
+    }
+}
+
+
 // ========================
 // Main Parser functions
 // ========================
@@ -94,11 +143,13 @@ Expr *primary(Parser *parser) {
         Expr *expr = expression(parser);
         if (!match(parser, (TokenType[]){RIGHT_PAREN}, 1)) {
             // Handle error: expected ')'
+            parseError(parser, "Expected ')' after expression.");
             return NULL;
         }
         return expr_grouping(expr);
     }
     // Handle error: expected expression
+    parseError(parser, "Expected expression.");
     return NULL;
 }
 
@@ -169,6 +220,14 @@ Expr *expression(Parser *parser) {
     return equality(parser);
 }
 
+// Parse the tokens into an expression AST. This is the main entry point for the parser.
+Expr *parse(Parser *parser) {
+    Expr *result = expression(parser);
+    if (result == NULL) {
+        synchronize(parser);
+    }
+    return result;
+}
 
 // Free the memory used by the parser.
 void freeParser(Parser *parser) {

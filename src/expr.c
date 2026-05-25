@@ -3,23 +3,23 @@
 
 // Create a new expression node with the given type and left/right sub-expressions.
 struct Expr *expr_new(ExprType type, struct Expr *left, struct Expr *right) {
-    struct Expr *e = malloc(sizeof(struct Expr));
-    e->type     = type;
-    e->left     = left;
-    e->right    = right;
+    struct Expr *e      = malloc(sizeof(struct Expr));
+    e->type             = type;
+    e->left             = left;
+    e->right            = right;
     return e;
 }
 
 // Create a new literal expression with the given value.
 struct Expr *expr_literal(double value) {
-    struct Expr *e = malloc(sizeof(struct Expr));
+    struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_LITERAL;
     e->literal.value    = value;
     return e;
 }
 
 struct Expr *expr_string(const char *value) {
-    struct Expr *e = malloc(sizeof(struct Expr));
+    struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_STRING;
     e->string.value     = value;
     return e;
@@ -27,7 +27,7 @@ struct Expr *expr_string(const char *value) {
 
 // Create a new variable expression with the given name.
 struct Expr *expr_variable(char *name) {
-    struct Expr *e = malloc(sizeof(struct Expr));
+    struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_VARIABLE;
     e->variable.name    = name;
     return e;
@@ -35,7 +35,7 @@ struct Expr *expr_variable(char *name) {
 
 // Create a new binary expression with the given operator and left/right sub-expressions.
 struct Expr *expr_binary(char op, struct Expr *left, struct Expr *right) {
-    struct Expr *e = malloc(sizeof(struct Expr));
+    struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_BINARY;
     e->binary.op        = op;
     e->binary.left      = left;
@@ -45,7 +45,7 @@ struct Expr *expr_binary(char op, struct Expr *left, struct Expr *right) {
 
 // Create a new unary expression with the given operator and operand.
 struct Expr *expr_unary(char op, struct Expr *operand) {
-    struct Expr *e = malloc(sizeof(struct Expr));
+    struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_UNARY;
     e->unary.op         = op;
     e->unary.operand    = operand;
@@ -54,7 +54,7 @@ struct Expr *expr_unary(char op, struct Expr *operand) {
 
 // Create a new function call expression with the given name and arguments.
 struct Expr *expr_call(char *name, struct Expr **args, int arg_count) {
-    struct Expr *e = malloc(sizeof(struct Expr));
+    struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_CALL;
     e->call.name        = name;
     e->call.args        = args;
@@ -64,33 +64,33 @@ struct Expr *expr_call(char *name, struct Expr **args, int arg_count) {
 
 // Create a new grouping expression with the given sub-expression.
 struct Expr *expr_grouping(struct Expr *expression) {
-    struct Expr *e = malloc(sizeof(struct Expr));
-    e->type = EXPR_GROUPING;
-    e->left = expression;
+    struct Expr *e      = malloc(sizeof(struct Expr));
+    e->type             = EXPR_GROUPING;
+    e->left             = expression;
     return e;
 }
 
 // Create a new index expression with the given array and index sub-expressions.
 struct Expr *expr_index(struct Expr *array, struct Expr *index) {
-    struct Expr *e = malloc(sizeof(struct Expr));
-    e->type = EXPR_INDEX;
-    e->index.array = array;
-    e->index.index = index;
+    struct Expr *e      = malloc(sizeof(struct Expr));
+    e->type             = EXPR_INDEX;
+    e->index.array      = array;
+    e->index.index      = index;
     return e;
 }
 
 // Create a new member access expression with the given object and member name.
 struct Expr *expr_member_access(struct Expr *object, char *member) {
-    struct Expr *e = malloc(sizeof(struct Expr));
-    e->type = EXPR_MEMBER_ACCESS;
+    struct Expr *e      = malloc(sizeof(struct Expr));
+    e->type             = EXPR_MEMBER_ACCESS;
     e->member_access.object = object;
     e->member_access.member = member;
     return e;
 }
 
 struct Expr *expr_ternary(struct Expr *condition, struct Expr *then_branch, struct Expr *else_branch) {
-    struct Expr *e = malloc(sizeof(struct Expr));
-    e->type = EXPR_TERNARY;
+    struct Expr *e      = malloc(sizeof(struct Expr));
+    e->type             = EXPR_TERNARY;
     e->ternary.condition = condition;
     e->ternary.then_branch = then_branch;
     e->ternary.else_branch = else_branch;

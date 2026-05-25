@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "errorHandling.h"
+#include "token.h"
 
 int hadError = 0;
 
@@ -16,8 +17,11 @@ void reportError(int line, const char* where, const char* message) {
 }
 
 // report an error with a message and the line number
-void error(int line, const char* message) {
-    hadError = 1;
-    reportError(line, "", message);
+void error(Token token, const char* message) {
+    if (token.type == EOF_TOKEN) {
+        reportError(token.line, "at end", message);
+    } else {
+        reportError(token.line, token.literal, message);
+    }
 }
 

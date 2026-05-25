@@ -6,19 +6,47 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "astPrinter.h"
 #include "errorHandling.h"
 #include "lexer.h"
+#include "parser.h"
 
 void run(const char* source) {
+    // Initialize the lexer and scan tokens from the source code
     Lexer lexer;
     initLexer(&lexer, source);
-
     TokenArray tokens = scanTokens(&lexer);
 
+    // Debug: Print all tokens
+    printf("=== TOKENS ===\n");
     for (int i = 0; i < tokens.count; i++) {
-        printToken(tokens.data[i]);
+        printf("Token: type=%d, lexeme='%.*s', line=%d\n",
+            tokens.data[i].type,
+            tokens.data[i].length,
+            tokens.data[i].lexeme,
+            tokens.data[i].line);
     }
 
+    if (hadError) {
+        freeTokenArray(&tokens);
+        return;
+    }
+
+    // Initialize the parser with the scanned tokens and parse them into an AST
+    Parser *parser = initParser(tokens.data, tokens.count);
+    Expr *ast = parse(parser);
+
+    // Debug: Print the AST
+    printf("=== AST ===\n");
+    print_expr(ast, 0);
+
+    if (hadError) {
+        freeParser(parser);
+        freeTokenArray(&tokens);
+        return;
+    }
+
+    freeParser(parser);
     freeTokenArray(&tokens);
 }
 

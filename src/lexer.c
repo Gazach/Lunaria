@@ -186,7 +186,7 @@ static void string(Lexer* lexer, TokenArray* tokens) {
     }
 
     if (isAtEnd(lexer)) {
-        error(lexer->line, "Unterminated string.");
+        error(makeToken(lexer, EOF_TOKEN), "Unterminated string.");
         return;
     }
 
@@ -292,7 +292,7 @@ static void scanToken(Lexer* lexer, TokenArray* tokens) {
             } else if (isAlpha(c)) {
                 identifier(lexer, tokens);
             } else {
-                error(lexer->line, "Unexpected character.");
+                error(makeToken(lexer, EOF_TOKEN), "Unexpected character.");
             }
             break;
     }
