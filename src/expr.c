@@ -66,7 +66,7 @@ struct Expr *expr_call(char *name, struct Expr **args, int arg_count) {
 struct Expr *expr_grouping(struct Expr *expression) {
     struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_GROUPING;
-    e->left             = expression;
+    e->grouping.expression = expression;
     return e;
 }
 
@@ -121,7 +121,7 @@ void expr_free(struct Expr *e) {
             free(e->call.args);
             break;
         case EXPR_GROUPING:
-            expr_free(e->left);
+            expr_free(e->grouping.expression);
             break;
         case EXPR_INDEX:
             expr_free(e->index.array);

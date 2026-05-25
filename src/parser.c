@@ -190,6 +190,7 @@ Expr *term(Parser *parser) {
     return expr;
 }
 
+// Parse a comparison expression, which can be a term expression followed by zero or more comparison operators and another term expression.
 Expr *comparison(Parser *parser) {
     Expr *expr = term(parser);
 
