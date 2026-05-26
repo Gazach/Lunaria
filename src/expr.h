@@ -2,7 +2,7 @@
 #define EXPR_H
 
 #include "token.h"
-
+#include "stdbool.h"
 #include "type.h"
 
 typedef struct Expr Expr;
@@ -13,6 +13,7 @@ typedef enum { //define expression types
     EXPR_BINARY,
     EXPR_UNARY,
     EXPR_STRING,
+    EXPR_BOOLEAN,
     EXPR_CALL, // New expression type for function calls
     EXPR_GROUPING, // New expression type for grouping parentheses like (a + b)
     EXPR_INDEX, // New expression type for indexing which arrays and lists like arr[0]
@@ -32,6 +33,9 @@ struct Expr { // define the structure of an expression
             char *name;
             Type type;
         } variable;
+        struct {
+            bool value;
+        } boolean;
         struct {
             const char *value;
         } string;
@@ -82,6 +86,7 @@ struct Expr *expr_index(struct Expr *array, struct Expr *index);
 struct Expr *expr_member_access(struct Expr *object, char *member);
 struct Expr *expr_ternary(struct Expr *condition, struct Expr *then_branch, struct Expr *else_branch);
 struct Expr *expr_string(const char *value);
+struct Expr *expr_boolean(bool value);
 
 
 #endif

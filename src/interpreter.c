@@ -376,6 +376,12 @@ void *evaluate(Expr *expr, Environment *env) {
             result->as.string = STRDUP(expr->string.value);
             return result;
         }
+        case EXPR_BOOLEAN: {
+            Value *result = malloc(sizeof(Value));
+            result->type = VAL_BOOLEAN;
+            result->as.boolean = expr->boolean.value;
+            return result;
+        }
         // TODO: Implement evaluation for other expression types (variables, binary, unary, etc.)
         default:
             runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Evaluation not implemented for this expression type.", NULL);

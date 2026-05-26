@@ -132,10 +132,10 @@ void synchronize(Parser *parser) {
 // Parse a primary expression, which can be a literal, variable, or parenthesized expression.
 Expr *primary(Parser *parser) {
     if (match(parser, (TokenType[]){TOKEN_FALSE}, 1)) {
-        return expr_literal(false); // or expr_literal(0) if using double for all literals
+        return expr_boolean(false);
     }
     if (match(parser, (TokenType[]){TOKEN_TRUE}, 1)) {
-        return expr_literal(true);
+        return expr_boolean(true);
     }
     if (match(parser, (TokenType[]){TOKEN_NIL}, 1)) {
         return expr_literal(0); 

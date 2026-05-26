@@ -99,6 +99,14 @@ struct Expr *expr_ternary(struct Expr *condition, struct Expr *then_branch, stru
     return e;
 }
 
+// Create a new boolean expression with the given value.
+struct Expr *expr_boolean(bool value) {
+    struct Expr *e      = malloc(sizeof(struct Expr));
+    e->type             = EXPR_BOOLEAN;
+    e->boolean.value     = value;
+    return e;
+}
+
 // Free the memory allocated for an expression and its sub-expressions.
 void expr_free(struct Expr *e) {
     if (!e) return;
@@ -114,6 +122,11 @@ void expr_free(struct Expr *e) {
             break;
         case EXPR_UNARY:
             expr_free(e->unary.operand);
+            break;
+        case EXPR_STRING:
+            free((char *)e->string.value);
+            break;
+         case EXPR_BOOLEAN:
             break;
         case EXPR_CALL:
             free(e->call.name);
