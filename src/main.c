@@ -6,31 +6,35 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "astPrinter.h"
 #include "errorHandling.h"
 #include "lexer.h"
 #include "parser.h"
 #include "interpreter.h"
+#include "environment.h"
 
 // Flag to indicate if a runtime error has occurred
 int hadRuntimeError = 0;
 
 // Run the given source code by lexing, parsing, and interpreting it.
 void run(const char* source) {
+    hadRuntimeError = 0; 
+    hadError = 0;
     printf("Lexing...\n");
     Lexer lexer;
     initLexer(&lexer, source);
     TokenArray tokens = scanTokens(&lexer);
     printf("Parsing...\n");
     Parser *parser = initParser(tokens.data, tokens.count);
-    Expr *expr = parse(parser);
+    Stmt *stmt = parse(parser);
     printf("Freeing parser...\n");
     freeParser(parser);
     freeTokenArray(&tokens);
-    if (expr) {
+    if (stmt != NULL) {
         printf("Interpreting...\n");
-        interpreter(expr);
-        expr_free(expr); // Make sure to free the AST if you have a function for it
+        Environment *env = create_environment(); // Create a new environment
+        interpreter(stmt, env); // Pass the environment to the interpreter
+        free_environment(env); // Free the environment after interpretation
+        stmt_free(stmt); // Make sure to free the AST if you have a function for it
     } else {
         printf("Parsing failed. No expression to interpret.\n");
     }

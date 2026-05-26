@@ -66,7 +66,6 @@ struct Expr { // define the structure of an expression
             struct Expr *then_branch;
             struct Expr *else_branch;
         } ternary;
-
     };
 };
 

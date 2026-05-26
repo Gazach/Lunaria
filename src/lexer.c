@@ -249,7 +249,15 @@ static void identifier(Lexer* lexer, TokenArray* tokens) {
 
     int length = (int)(lexer->current - lexer->start);
     TokenType type = getKeywordType(lexer->start, length);
-    addToken(lexer, tokens, type);
+    
+    if (type == TOKEN_IDENTIFIER) {
+        char* value = (char*)malloc(length + 1);
+        strncpy_s(value, length + 1, lexer->start, length);
+        value[length] = '\0';
+        addTokenLiteral(lexer, tokens, type, value);
+    } else {
+        addToken(lexer, tokens, type);
+    }
 }
 // Scan a single token from the source code and add it to the token array
 static void scanToken(Lexer* lexer, TokenArray* tokens) {

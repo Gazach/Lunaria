@@ -2,7 +2,7 @@
 #define PARSER_H
 
 #include "token.h"
-#include "expr.h"
+#include "stmt.h"
 
 typedef struct {
 	Token *data;
@@ -12,7 +12,7 @@ typedef struct {
 } Parser;
 
 Parser *initParser(Token *tokens, int token_count);
-Expr *parse(Parser *parser);
+Stmt *parse(Parser *parser);
 void freeParser(Parser *parser);
 
 #endif // PARSER_H

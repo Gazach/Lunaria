@@ -15,7 +15,7 @@ typedef struct {
     ValueType type;
     union {
         double number;
-        char *string;
+        const char *string;
         bool boolean;
     } as;
 } Value;

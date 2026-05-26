@@ -51,7 +51,8 @@ Token *previous(Parser *parser) {
 
 // Check if the current token matches the expected type and advance if it does.
 static bool isAtEnd(Parser *parser) {
-    return peek(parser)->type == TOKEN_EOF;
+    Token *current = peek(parser);
+    return current == NULL || current->type == TOKEN_EOF;
 }
 
 // Advance the parser and return the current token.
@@ -333,13 +334,13 @@ Stmt *statement(Parser *parser) {
 // we parse everything in the main parse function, which is the entry point for the parser. It will call the appropriate parsing functions based on the current token and build the AST accordingly.
 //=================================
 
-// Parse the tokens into an expression AST. This is the main entry point for the parser.
-Expr *parse(Parser *parser) {
-    Expr *result = expression(parser);
-    if (result == NULL) {
-        synchronize(parser);
+//we parse everything in the main parse function, which is the entry point for the parser. It will call the appropriate parsing functions based on the current token and build the AST accordingly.
+Stmt *parse(Parser *parser) {
+    Stmt *stmt = Declaration(parser);
+    if (stmt == NULL) {
+        return NULL; // Parsing failed, return NULL
     }
-    return result;
+    return stmt;
 }
 
 // Free the memory used by the parser.

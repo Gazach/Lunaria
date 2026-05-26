@@ -7,9 +7,11 @@
 #include <string.h>
 
 #include "interpreter.h"
+#include "environment.h"
 
 // Forward declaration of the expression evaluation function.
-void *evaluate(Expr *expr);
+void *evaluate(Expr *expr, Environment *env);
+void *execute(Stmt *stmt, Environment *env);
 extern int hadRuntimeError; // Flag to indicate if a runtime error has occurred
 
 // =========================
@@ -17,7 +19,7 @@ extern int hadRuntimeError; // Flag to indicate if a runtime error has occurred
 // =========================
 
 // Evaluate a literal expression and return its value as a void pointer (which can be cast to the appropriate type by the caller).
-void *eval_literal(struct Expr *expr) {
+void *eval_literal(struct Expr *expr, Environment *env) {
     Value *result = malloc(sizeof(Value));
     result->type = VAL_NUMBER;
     result->as.number = expr->literal.value;
@@ -34,14 +36,14 @@ void *eval_literal(struct Expr *expr) {
 // Checks if both operands are valid (for numbers or strings). Reports runtime error if not.
 bool checkNumberOperand(Token operator, void *left_value, void *right_value) {
     if (left_value == NULL || right_value == NULL) {
-        runtime_error(operator, "Operand is not a number.");
+        runtime_error(operator, "Operand is not a number.", NULL);
         hadRuntimeError = 1;
         return false;
     }
     Value *left = (Value *)left_value;
     Value *right = (Value *)right_value;
     if (left->type != VAL_NUMBER || right->type != VAL_NUMBER) {
-        runtime_error(operator, "Operand is not a number.");
+        runtime_error(operator, "Operand is not a number.", NULL);
         hadRuntimeError = 1;
         return false;
     }
@@ -85,8 +87,8 @@ Value *eval_logical_not(Value *operand_value) {
 
 // we evaluate a unary expression by evaluating its operand and applying the appropriate unary operator to it. 
 // The result is returned as a void pointer, which can be cast to the appropriate type by the caller.
-void *eval_unary(struct Expr *expr) {
-    void *operand_value = evaluate(expr->unary.operand);
+void *eval_unary(struct Expr *expr, Environment *env) {
+    void *operand_value = evaluate(expr->unary.operand, env);
     switch (expr->unary.op) {
 
         case TOKEN_MINUS:
@@ -94,7 +96,7 @@ void *eval_unary(struct Expr *expr) {
         case TOKEN_NOT:
             return eval_logical_not((Value *)operand_value);
         default:
-            runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Unknown unary operator.");
+            runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Unknown unary operator.", NULL);
             return NULL;
     }
 }
@@ -126,11 +128,11 @@ bool is_equal(Value *a, Value *b) {
 
 // Evaluate a binary expression by evaluating its left and right sub-expressions 
 // and applying the appropriate binary operator to the results.
-void *eval_binary(struct Expr *expr) {
+void *eval_binary(struct Expr *expr, Environment *env) {
     Expr *left = expr->binary.left;
     Expr *right = expr->binary.right;
-    Value *left_value = (Value *)evaluate(left);
-    Value *right_value = (Value *)evaluate(right);
+    Value *left_value = (Value *)evaluate(left, env);
+    Value *right_value = (Value *)evaluate(right, env);
     
     // we handle the evaluation of binary expressions, such as addition, subtraction, multiplication, division, and equality/inequality comparisons. 
     // The function first evaluates the left and right sub-expressions of the binary expression 
@@ -158,7 +160,7 @@ void *eval_binary(struct Expr *expr) {
         }
         case TOKEN_SLASH: {
             if (right_value->as.number == 0) {
-                runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Division by zero.");
+                runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Division by zero.", NULL);
                 return NULL;
             }
             Value *result = malloc(sizeof(Value));
@@ -207,7 +209,7 @@ void *eval_binary(struct Expr *expr) {
             return result;
         }
         default:
-            runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Unknown binary operator.");
+            runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Unknown binary operator.", NULL);
             return NULL;
     }
 }
@@ -216,8 +218,8 @@ void *eval_binary(struct Expr *expr) {
 // Eval grouping expressions
 // =========================
 
-void *eval_grouping(struct Expr *expr) {
-    return evaluate(expr->grouping.expression);
+void *eval_grouping(struct Expr *expr, Environment *env) {
+    return evaluate(expr->grouping.expression, env);
 }
 
 // Helper function to convert a Value to a string representation for printing or debugging purposes.
@@ -243,36 +245,168 @@ char *stringifyValue(Value *value) {
 }
 
 // =========================
+// Environment and variable handling functions will go here
+// ========================
+
+// Initialize a new environment for variable storage and scope management. This will be used to store variable bindings and manage scopes during interpretation.
+Environment *create_environment() {
+    Environment *env = malloc(sizeof(Environment));
+    env->entries = NULL;
+    env->count = 0;
+    env->capacity = 0;
+    env->parent = NULL; // For global environment, parent is NULL
+    return env;
+}
+
+// Set a variable in the environment with the given name and value. This will be used to create new variable bindings or update existing ones during interpretation.
+void *env_set_variable(Environment *env, const char *name, Value value) {
+    // Check if the variable already exists in the current environment
+    for (int i = 0; i < env->count; i++) {
+        if (strcmp(env->entries[i].name, name) == 0) {
+            env->entries[i].value = value; // Update existing variable
+            return NULL;
+        }
+    }
+    // If not found, add a new entry
+    if (env->count >= env->capacity) {
+        int newCapacity = env->capacity == 0 ? 8 : env->capacity * 2;
+        env->entries = realloc(env->entries, newCapacity * sizeof(Entry));
+        env->capacity = newCapacity;
+    }
+    env->entries[env->count].name = STRDUP(name);
+    env->entries[env->count].value = value;
+    env->count++;
+    return NULL;
+}
+
+// Get the value of a variable from the environment by its name. This will be used to retrieve variable values during interpretation.
+Value *env_get_variable(Environment *env, const char *name) {
+    for (int i = 0; i < env->count; i++) {
+        if (strcmp(env->entries[i].name, name) == 0) {
+            return &env->entries[i].value; // Return pointer to the variable's value
+        }
+    }
+    if (env->parent != NULL) {
+        return env_get_variable(env->parent, name); // Look in parent environment
+    }
+    return NULL; // Variable not found
+}
+
+// Free the memory used by the environment and its entries. This should be called when the environment is no longer needed to avoid memory leaks.
+void free_environment(Environment *env) {
+    for (int i = 0; i < env->count; i++) {
+        free(env->entries[i].name); // Free variable names
+    }
+    free(env->entries); // Free entries array
+    free(env); // Free the environment itself
+}
+
+// Evaluate a variable expression by looking up its value in the environment. This will be used to retrieve the value of variables during interpretation.
+Value *eval_variable(struct Expr *expr, Environment *env) {
+    Value *value = env_get_variable(env, expr->variable.name);
+    if (value == NULL) {
+        runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = expr->variable.name}, "Undefined variable '%s'.", expr->variable.name);
+        return NULL;
+    }
+    return value;
+}
+
+// STMT for variable declaration will be handled in the execute function when we execute a variable declaration statement. We will evaluate the initializer expression and then set the variable in the environment with its initial value.
+
+Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
+    Value *init_value = (Value *)evaluate(stmt->variable_declaration_stmt.variable->value, env);
+    if (!init_value) {
+        runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = stmt->variable_declaration_stmt.variable->name}, "Failed to initialize variable '%s'.", stmt->variable_declaration_stmt.variable->name);
+        return NULL;
+    }
+
+    TokenType var_type = stmt->variable_declaration_stmt.variable->typeannotation_types;
+    if (var_type != TOKEN_TYPE_NONE) {
+        bool type_ok = false;
+        switch (var_type) {
+            case TOKEN_TYPE_BOOL:
+                type_ok = init_value->type == VAL_BOOLEAN;
+                break;
+            case TOKEN_TYPE_INT:
+            case TOKEN_TYPE_FLOAT:
+                type_ok = init_value->type == VAL_NUMBER;
+                break;
+            case TOKEN_TYPE_CHAR:
+            case TOKEN_TYPE_STRING:
+                type_ok = init_value->type == VAL_STRING;
+                break;
+            case TOKEN_TYPE_VOID:
+                type_ok = init_value->type == VAL_NULL;
+                break;
+            default:
+                break;
+        }
+        if (!type_ok) {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Type mismatch for variable '%s'. Expected type does not match initializer type.", stmt->variable_declaration_stmt.variable->name);
+            runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = stmt->variable_declaration_stmt.variable->name}, msg, NULL);
+            return NULL;
+        }
+    }
+    env_set_variable(env, stmt->variable_declaration_stmt.variable->name, *init_value);
+    return NULL;
+}
+
+// =========================
 // Main evaluation function
 // =========================
 
 // Main function to evaluate an expression and return its result. This is where the core interpretation logic will go.
-void *evaluate(Expr *expr) {
+void *evaluate(Expr *expr, Environment *env) {
     // check the type of the expression and evaluate it accordingly
     switch (expr->type) {
         case EXPR_LITERAL:
-            return eval_literal(expr);
+            return eval_literal(expr, env);
         case EXPR_UNARY:
-            return eval_unary(expr);
+            return eval_unary(expr, env);
         case EXPR_BINARY:
-            return eval_binary(expr);
+            return eval_binary(expr, env);
         case EXPR_GROUPING:
-            return eval_grouping(expr);
+            return eval_grouping(expr, env);
+        case EXPR_VARIABLE:
+            return eval_variable(expr, env);
+        case EXPR_STRING: {
+            Value *result = malloc(sizeof(Value));
+            result->type = VAL_STRING;
+            result->as.string = STRDUP(expr->string.value);
+            return result;
+        }
         // TODO: Implement evaluation for other expression types (variables, binary, unary, etc.)
         default:
-            runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Evaluation not implemented for this expression type.");
+            runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Evaluation not implemented for this expression type.", NULL);
+            return NULL;
+    }
+}
+
+// Main function to execute a statement. This will be used to execute statements during interpretation, such as variable declarations, expression statements, etc.
+void *execute(Stmt *stmt, Environment *env) {
+    // check the type of the statement and execute it accordingly
+    switch (stmt->type) {
+        case STMT_EXPR:
+            return evaluate(stmt->expr_stmt.expr, env);
+        case STMT_VARIABLE_DECLARATION: {
+            return eval_variable_declaration(stmt, env);
+        }
+        default:
+            runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Execution not implemented for this statement type.", NULL);
             return NULL;
     }
 }
 
 // Main function to interpret an expression and print its result. This is the entry point for the interpreter.
-void interpreter(struct Expr *expr) {
-    void *result = evaluate(expr);
-    if (!hadRuntimeError) {
+void interpreter(struct Stmt *stmt, Environment *env) {
+    void *result = execute(stmt, env);
+    if (hadRuntimeError) {
+        return;
+    }
+    if (result) {
         char *result_str = stringifyValue((Value *)result);
         printf("%s\n", result_str);
         free(result_str);
-    } else {
-        printf("Runtime error occurred during interpretation.\n");
     }
 }
