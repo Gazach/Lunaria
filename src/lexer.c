@@ -19,35 +19,40 @@ typedef struct {
 } Keyword;
 
 static const Keyword keywords[] = {
-    { "and",      AND      },
-    { "break",    BREAK    },
-    { "class",    CLASS    },
-    { "const",    CONST    },
-    { "continue", CONTINUE },
-    { "elif",     ELIF     },
-    { "else",     ELSE     },
-    { "false",    FALSE    },
-    { "for",      FOR      },
-    { "fn", FUNCTION },
-    { "if",       IF       },
-    { "import",   IMPORT   },
-    { "null",      NIL      },
-    { "or",       OR       },
-    { "print",    PRINT    },
-    { "return",   RETURN   },
-    { "super",    SUPER    },
-    { "this",     THIS     },
-    { "true",     TRUE     },
-    { "while",    WHILE    },
-    { "int",       TYPE_INT},
-    { "string",    TYPE_STRING},
-    { "bool",      TYPE_BOOL},
-    { "float",     TYPE_FLOATING_POINT},
-    { "char",      TYPE_CHARACTER},
-    { "void",      VOID},
-    { "switch",    SWITCH},
-    { "case",      CASE},
-    { "default",   DEFAULT},
+    { "and",      TOKEN_AND      },
+    { "break",    TOKEN_BREAK    },
+    { "class",    TOKEN_CLASS    },
+    { "const",    TOKEN_CONST    },
+    { "let",       TOKEN_LET      },
+    { "continue", TOKEN_CONTINUE },
+    { "elif",     TOKEN_ELIF     },
+    { "else",     TOKEN_ELSE     },
+    { "false",    TOKEN_FALSE    },
+    { "for",      TOKEN_FOR      },
+    { "fn", TOKEN_FUNCTION },
+    { "if",       TOKEN_IF       },
+    { "import",   TOKEN_IMPORT   },
+    { "null",      TOKEN_NIL      },
+    { "or",       TOKEN_OR       },
+    { "print",    TOKEN_PRINT    },
+    { "return",   TOKEN_RETURN   },
+    { "super",    TOKEN_SUPER    },
+    { "this",     TOKEN_THIS     },
+    { "true",     TOKEN_TRUE     },
+    { "while",    TOKEN_WHILE    },
+    { "int",       TOKEN_TYPE_INT},
+    { "string",    TOKEN_TYPE_STRING},
+    { "bool",      TOKEN_TYPE_BOOL},
+    { "float",     TOKEN_TYPE_FLOAT},
+    { "char",      TOKEN_TYPE_CHAR},
+    { "void",      TOKEN_TYPE_VOID},
+    { "switch",    TOKEN_SWITCH},
+    { "case",      TOKEN_CASE},
+    { "mut",   TOKEN_MUTABLE},
+    { "static",    TOKEN_STATIC},
+    { "pub",    TOKEN_PUBLIC},
+    { "priv",   TOKEN_PRIVATE},
+    { "default",   TOKEN_DEFAULT},
 };
 
 // Returns the TokenType for the given identifier, or IDENTIFIER if not a keyword.
@@ -59,7 +64,7 @@ static TokenType getKeywordType(const char* text, int length) {
             return keywords[i].type;
         }
     }
-    return IDENTIFIER;
+    return TOKEN_IDENTIFIER;
 }
 
 //==============================
@@ -169,7 +174,7 @@ TokenArray scanTokens(Lexer* lexer) {
 
     // Add an EOF token at the end of the token stream
     Token eof;
-    eof.type    = EOF_TOKEN;
+    eof.type    = TOKEN_EOF;
     eof.lexeme  = "";
     eof.length  = 0;
     eof.literal = NULL;
@@ -186,7 +191,7 @@ static void string(Lexer* lexer, TokenArray* tokens) {
     }
 
     if (isAtEnd(lexer)) {
-        error(makeToken(lexer, EOF_TOKEN), "Unterminated string.");
+        error(makeToken(lexer, TOKEN_EOF), "Unterminated string.");
         return;
     }
 
@@ -199,7 +204,7 @@ static void string(Lexer* lexer, TokenArray* tokens) {
     strncpy_s(value, length + 1, lexer->start + 1, length);
     value[length] = '\0';
 
-    addTokenLiteral(lexer, tokens, STRING, value);
+    addTokenLiteral(lexer, tokens, TOKEN_STRING, value);
 }
 
 // Check if a character is a digit (0-9)
@@ -226,7 +231,7 @@ static void number(Lexer* lexer, TokenArray* tokens) {
     value[length] = '\0';
 
     // Add the number token with the literal value as a string
-    addTokenLiteral(lexer, tokens, NUMBER, value);
+    addTokenLiteral(lexer, tokens, TOKEN_NUMBER, value);
 }
 
 static bool isAlpha(char c) {
@@ -252,28 +257,36 @@ static void scanToken(Lexer* lexer, TokenArray* tokens) {
 
     switch (c) {
         // read single-character tokens and add them to the token array
-        case '(': addToken(lexer, tokens, LEFT_PAREN); break;
-        case ')': addToken(lexer, tokens, RIGHT_PAREN); break;
-        case '{': addToken(lexer, tokens, LEFT_BRACE); break;
-        case '}': addToken(lexer, tokens, RIGHT_BRACE); break;
-        case ',': addToken(lexer, tokens, COMMA); break;
-        case '.': addToken(lexer, tokens, DOT); break;
-        case '-': addToken(lexer, tokens, MINUS); break;
-        case '+': addToken(lexer, tokens, PLUS); break;
-        case ';': addToken(lexer, tokens, SEMICOLON); break;
-        case '*': addToken(lexer, tokens, STAR); break;
-        case '!': addToken(lexer, tokens, match(lexer, '=') ? NOT_EQUAL : NOT); break;
-        case '=': addToken(lexer, tokens, match(lexer, '=') ? EQUAL_EQUAL : EQUAL); break;
-        case '<': addToken(lexer, tokens, match(lexer, '=') ? LESS_EQUAL : LESS); break;
-        case '>': addToken(lexer, tokens, match(lexer, '=') ? GREATER_EQUAL : GREATER); break;
-        case '&': addToken(lexer, tokens, match(lexer, '&') ? AND_AND : AND); break;
-        case '|': addToken(lexer, tokens, match(lexer, '|') ? OR_OR : OR); break;
+        case '(': addToken(lexer, tokens, TOKEN_LEFT_PAREN); break;
+        case ')': addToken(lexer, tokens, TOKEN_RIGHT_PAREN); break;
+        case '{': addToken(lexer, tokens, TOKEN_LEFT_BRACE); break;
+        case '}': addToken(lexer, tokens, TOKEN_RIGHT_BRACE); break;
+        case ',': addToken(lexer, tokens, TOKEN_COMMA); break;
+        case '.': addToken(lexer, tokens, TOKEN_DOT); break;
+        case '-': addToken(lexer, tokens, TOKEN_MINUS); break;
+        case '+': addToken(lexer, tokens, TOKEN_PLUS); break;
+        case ';': addToken(lexer, tokens, TOKEN_SEMICOLON); break;
+        case '*': addToken(lexer, tokens, TOKEN_STAR); break;
+        case '!': addToken(lexer, tokens, match(lexer, '=') ? TOKEN_NOT_EQUAL : TOKEN_NOT); break;
+        case '=': addToken(lexer, tokens, match(lexer, '=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL); break;
+        case '<': addToken(lexer, tokens, match(lexer, '=') ? TOKEN_LESS_EQUAL : TOKEN_LESS); break;
+        case '>': addToken(lexer, tokens, match(lexer, '=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER); break;
+        case '&': addToken(lexer, tokens, match(lexer, '&') ? TOKEN_AND_AND : TOKEN_AND); break;
+        case '|': addToken(lexer, tokens, match(lexer, '|') ? TOKEN_OR_OR : TOKEN_OR); break;
+        case ':': 
+            if (match(lexer, ':')) {
+                addToken(lexer, tokens, TOKEN_DOUBLE_COLON);
+            } else {
+                addToken(lexer, tokens, TOKEN_COLON);
+            }
+            break;
+        case '?': addToken(lexer, tokens, TOKEN_QUESTION_MARK); break;
         case '/':
             if (match(lexer, '/')) {
                 // check if it's a comment and skip until the end of the line
                 while (peek(lexer) != '\n' && !isAtEnd(lexer)) advance(lexer);
             } else {
-                addToken(lexer, tokens, SLASH);
+                addToken(lexer, tokens, TOKEN_SLASH);
             }
             break;
         case ' ':
@@ -292,7 +305,7 @@ static void scanToken(Lexer* lexer, TokenArray* tokens) {
             } else if (isAlpha(c)) {
                 identifier(lexer, tokens);
             } else {
-                error(makeToken(lexer, EOF_TOKEN), "Unexpected character.");
+                error(makeToken(lexer, TOKEN_EOF), "Unexpected character.");
             }
             break;
     }

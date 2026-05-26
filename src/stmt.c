@@ -1,5 +1,6 @@
 #include "stmt.h"
 #include "expr.h"
+#include "interpreter.h"
 #include <stdlib.h>
 
 // Create a new statement node with the given type and associated data.
@@ -161,6 +162,14 @@ struct Stmt *stmt_class_declaration(char *name, struct Stmt **body, int body_cou
     return s;
 }
 
+// Create a new variable declaration statement with the given variable information.
+// also able to mutablity and static modifiers
+struct Stmt *stmt_variable_declaration(VariableDeclaration *variable) {
+    struct Stmt *s = stmt_new(STMT_VARIABLE_DECLARATION);
+    s->variable_declaration_stmt.variable = variable;
+    return s;
+}
+
 // Free the memory used by a statement and its associated data.
 void stmt_free(struct Stmt *stmt) {
     if (!stmt) return;
@@ -270,6 +279,11 @@ void stmt_free(struct Stmt *stmt) {
                 stmt_free(stmt->class_declaration_stmt.body[i]);
             }
             free(stmt->class_declaration_stmt.body);
+            break;
+        case STMT_VARIABLE_DECLARATION:
+            free((void*)stmt->variable_declaration_stmt.variable->name);
+            expr_free(stmt->variable_declaration_stmt.variable->value);
+            free(stmt->variable_declaration_stmt.variable);
             break;
     }
     free(stmt);

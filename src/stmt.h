@@ -22,8 +22,26 @@ typedef enum { //define statement types
     STMT_DEFAULT, // New statement type for default branches of switch statements
     STMT_IMPORT, // New statement type for import statements like "import math;"
     STMT_CLASS_DECLARATION, // New statement type for class declarations like "class Point { x: int; y: int; }"'
-
+    STMT_VARIABLE_DECLARATION, // New statement type for variable declarations like "let x = 5;"
 } StmtType;
+
+// Define modifier flags for variable declarations
+typedef enum{
+    MODIFIER_NONE = 0,
+    MODIFIER_MUTABLE = 1 << 0,
+    MODIFIER_STATIC = 1 << 1,
+    MODIFIER_PUBLIC = 1 << 2,
+    MODIFIER_PRIVATE = 1 << 3,
+
+} modifierFlags;
+
+// Structure for variable declarations with modifiers
+typedef struct {
+    const char *name;
+    TokenType typeannotation_types; // Optional type annotation as a TokenType
+    modifierFlags modifiers;
+    Expr *value;
+} VariableDeclaration;
 
 struct Stmt { // define the structure of a statement
     StmtType type;
@@ -109,6 +127,9 @@ struct Stmt { // define the structure of a statement
             struct Stmt **body;
             int body_count;
         } class_declaration_stmt;
+        struct {
+            VariableDeclaration *variable;
+        } variable_declaration_stmt;
     };
 };
 
@@ -133,7 +154,7 @@ struct Stmt *stmt_continue();
 struct Stmt *stmt_default(struct Stmt **cases, int case_count);
 struct Stmt *stmt_import(char *module_name);
 struct Stmt *stmt_class_declaration(char *name, struct Stmt **body, int body_count);
-
+struct Stmt *stmt_variable_declaration(VariableDeclaration *variable);
 
 
 #endif

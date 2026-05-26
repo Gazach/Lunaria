@@ -30,6 +30,12 @@ Parser *initParser(Token *tokens, int token_count) {
 }
 
 Expr *expression(Parser *parser); // Forward declaration of the expression parsing function
+Stmt *statement(Parser *parser); // Forward declaration of the statement parsing function
+
+
+//====================================================================================================================================================
+// EXPRESSION PARSING PART
+//====================================================================================================================================================
 
 // Check if we've reached the end of the token list.
 Token *peek(Parser *parser) {
@@ -45,7 +51,7 @@ Token *previous(Parser *parser) {
 
 // Check if the current token matches the expected type and advance if it does.
 static bool isAtEnd(Parser *parser) {
-    return peek(parser)->type == EOF_TOKEN;
+    return peek(parser)->type == TOKEN_EOF;
 }
 
 // Advance the parser and return the current token.
@@ -91,22 +97,22 @@ void synchronize(Parser *parser) {
     advance(parser);
 
     while (!isAtEnd(parser)) {
-        if (previous(parser)->type == SEMICOLON) return;
+        if (previous(parser)->type == TOKEN_SEMICOLON) return;
 
         switch (peek(parser)->type) {
-            case CLASS:
-            case FUNCTION:
-            case FOR:
-            case IF:
-            case WHILE:
-            case RETURN:
-            case ELSE:
-            case ELIF:
-            case IMPORT:
-            case PRINT:
-            case SWITCH:
-            case CASE:
-            case DEFAULT:
+            case TOKEN_CLASS:
+            case TOKEN_FUNCTION:
+            case TOKEN_FOR:
+            case TOKEN_IF:
+            case TOKEN_WHILE:
+            case TOKEN_RETURN:
+            case TOKEN_ELSE:
+            case TOKEN_ELIF:
+            case TOKEN_IMPORT:
+            case TOKEN_PRINT:
+            case TOKEN_SWITCH:
+            case TOKEN_CASE:
+            case TOKEN_DEFAULT:
                 return;
             default:
                 break;
@@ -124,24 +130,24 @@ void synchronize(Parser *parser) {
 
 // Parse a primary expression, which can be a literal, variable, or parenthesized expression.
 Expr *primary(Parser *parser) {
-    if (match(parser, (TokenType[]){FALSE}, 1)) {
+    if (match(parser, (TokenType[]){TOKEN_FALSE}, 1)) {
         return expr_literal(false); // or expr_literal(0) if using double for all literals
     }
-    if (match(parser, (TokenType[]){TRUE}, 1)) {
+    if (match(parser, (TokenType[]){TOKEN_TRUE}, 1)) {
         return expr_literal(true);
     }
-    if (match(parser, (TokenType[]){NIL}, 1)) {
+    if (match(parser, (TokenType[]){TOKEN_NIL}, 1)) {
         return expr_literal(0); 
     }
-    if (match(parser, (TokenType[]){NUMBER}, 1)) {
+    if (match(parser, (TokenType[]){TOKEN_NUMBER}, 1)) {
         return expr_literal(strtod(previous(parser)->literal, NULL));
     }
-    if (match(parser, (TokenType[]){STRING}, 1)) {
+    if (match(parser, (TokenType[]){TOKEN_STRING}, 1)) {
         return expr_string(previous(parser)->literal);
     }
-    if (match(parser, (TokenType[]){LEFT_PAREN}, 1)) {
+    if (match(parser, (TokenType[]){TOKEN_LEFT_PAREN}, 1)) {
         Expr *expr = expression(parser);
-        if (!match(parser, (TokenType[]){RIGHT_PAREN}, 1)) {
+        if (!match(parser, (TokenType[]){TOKEN_RIGHT_PAREN}, 1)) {
             // Handle error: expected ')'
             parseError(parser, "Expected ')' after expression.");
             return NULL;
@@ -155,7 +161,7 @@ Expr *primary(Parser *parser) {
 
 // Parse a unary expression, which can be a primary expression or a unary operator followed by another unary expression.
 Expr *Unary(Parser *parser){
-    if (match(parser, (TokenType[]){MINUS, NOT}, 2)) {
+    if (match(parser, (TokenType[]){TOKEN_MINUS, TOKEN_NOT}, 2)) {
         Token *operator = previous(parser);
         Expr *right = Unary(parser);
         return expr_unary(operator->type, right);
@@ -168,7 +174,7 @@ Expr *Unary(Parser *parser){
 Expr *factor(Parser *parser) {
     Expr *expr = Unary(parser);
 
-    while (match(parser, (TokenType[]){STAR, SLASH}, 2)) {
+    while (match(parser, (TokenType[]){TOKEN_STAR, TOKEN_SLASH}, 2)) {
         Token *operator = previous(parser);
         Expr *right = Unary(parser);
         expr = expr_binary(operator->type, expr, right);
@@ -181,7 +187,7 @@ Expr *factor(Parser *parser) {
 Expr *term(Parser *parser) {
     Expr *expr = factor(parser);
 
-    while (match(parser, (TokenType[]){PLUS, MINUS}, 2)) {
+    while (match(parser, (TokenType[]){TOKEN_PLUS, TOKEN_MINUS}, 2)) {
         Token *operator = previous(parser);
         Expr *right = factor(parser);
         expr = expr_binary(operator->type, expr, right);
@@ -194,7 +200,7 @@ Expr *term(Parser *parser) {
 Expr *comparison(Parser *parser) {
     Expr *expr = term(parser);
 
-    while (match(parser, (TokenType[]){GREATER, GREATER_EQUAL, LESS, LESS_EQUAL}, 4)) {
+    while (match(parser, (TokenType[]){TOKEN_GREATER, TOKEN_GREATER_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL}, 4)) {
         Token *operator = previous(parser);
         Expr *right = term(parser);
         expr = expr_binary(operator->type, expr, right);
@@ -207,7 +213,7 @@ Expr *comparison(Parser *parser) {
 Expr *equality(Parser *parser) {
     Expr *expr = comparison(parser);
 
-    while (match(parser, (TokenType[]){EQUAL_EQUAL, NOT_EQUAL}, 2)) {
+    while (match(parser, (TokenType[]){TOKEN_EQUAL_EQUAL, TOKEN_NOT_EQUAL}, 2)) {
         Token *operator = previous(parser);
         Expr *right = comparison(parser);
         expr = expr_binary(operator->type, expr, right);
@@ -220,6 +226,112 @@ Expr *equality(Parser *parser) {
 Expr *expression(Parser *parser) {
     return equality(parser);
 }
+
+//====================================================================================================================================================
+// STATEMENT PARSING PART
+//====================================================================================================================================================
+
+
+// variable declaration statement.
+Stmt *var_Declaration(Parser *parser) {
+    // boolean flags for modifiers
+    bool is_const = match(parser, (TokenType[]){TOKEN_CONST}, 1);
+    bool is_mutable = match(parser, (TokenType[]){TOKEN_MUTABLE}, 1);
+    bool is_static = match(parser, (TokenType[]){TOKEN_STATIC}, 1);
+    bool is_public = match(parser, (TokenType[]){TOKEN_PUBLIC}, 1);
+    bool is_private = match(parser, (TokenType[]){TOKEN_PRIVATE}, 1);
+
+    // we check for conflicting modifiers. For example, a variable cannot be both 'const' and 'mutable', and it cannot be both 'public' and 'private'. If we find any such conflicts, we report a parsing error with an appropriate message.
+    if (is_const && is_mutable) {
+        parseError(parser, "Variable cannot be both 'const' and 'mutable'.");
+        return NULL;
+    }
+    // we allow both 'static' and 'public' or 'private' together, but not 'public' and 'private' together
+    if (is_public && is_private) {
+        parseError(parser, "Variable cannot be both 'public' and 'private'.");
+        return NULL;
+    }
+  
+    //check if the next token is an identifier for the variable name
+    if (!match(parser, (TokenType[]){TOKEN_IDENTIFIER}, 1)) {
+        parseError(parser, "Expected variable name.");
+        return NULL;
+    }
+    
+
+    // we get the variable name from the previous token (which should be the identifier we just matched) and store it in a VariableDeclaration struct along with the modifiers we parsed earlier. We then check for an optional initializer (the '=' token followed by an expression) and store that in the VariableDeclaration as well. Finally, we check for a semicolon at the end of the declaration and report an error if it's missing.
+    const char *name = previous(parser)->literal;
+
+    // Create a VariableDeclaration struct to hold the variable information, including its name and modifiers.
+
+    VariableDeclaration *variable = malloc(sizeof(VariableDeclaration));
+    variable->name = name;
+    variable->modifiers = MODIFIER_NONE;
+    if (is_mutable) variable->modifiers |= MODIFIER_MUTABLE;
+    if (is_static) variable->modifiers |= MODIFIER_STATIC;
+    if (is_public) variable->modifiers |= MODIFIER_PUBLIC;
+    if (is_private) variable->modifiers |= MODIFIER_PRIVATE;
+
+    TokenType type_annotation [] = {TOKEN_TYPE_NONE};
+    // check for optional type annotation
+    if (match(parser, (TokenType[]){TOKEN_COLON}, 1)) {
+        TokenType possible_types[] = {TOKEN_TYPE_BOOL, TOKEN_TYPE_INT, TOKEN_TYPE_FLOAT, TOKEN_TYPE_CHAR, TOKEN_TYPE_STRING, TOKEN_TYPE_VOID};
+            bool found_type = false;
+        for (int i = 0; i < sizeof(possible_types) / sizeof(possible_types[0]); i++) {
+            if (check(parser, possible_types[i])) {
+                type_annotation [0] = possible_types[i];
+                advance(parser);
+                found_type = true;
+                break;
+            }
+        }
+        if (!found_type) {
+            parseError(parser, "Expected type annotation after ':'.");
+            free(variable);
+            return NULL;
+        }
+    
+    }
+    variable->typeannotation_types = type_annotation[0];
+
+    // check equal sign for initializer
+    if (!match(parser, (TokenType[]){TOKEN_EQUAL}, 1)) {
+        parseError(parser, "Expected '=' after variable name.");
+        free(variable);
+        return NULL;
+    }
+
+    variable->value = expression(parser);
+    // check for semicolon at the end of the declaration
+    if (!match(parser, (TokenType[]){TOKEN_SEMICOLON}, 1)) {
+        parseError(parser, "Expected ';' after variable declaration.");
+        free(variable);
+        return NULL;
+    }
+
+    return stmt_variable_declaration(variable);
+}
+
+Stmt *Declaration(Parser *parser){
+    // check if the current token is 'let' or 'const' for variable declaration, and then check if the next token is an identifier for the variable name, and then check if the next token is '=' for variable initialization. If any of these checks fail, we report a parsing error with an appropriate message.
+    if (match(parser, (TokenType[]){TOKEN_LET, TOKEN_CONST}, 2)) {
+        return var_Declaration(parser);
+    } else {
+        parseError(parser, "Expected declaration.");
+        synchronize(parser);
+        return NULL;
+    }
+}
+
+// Parse a statement, which can be an expression statement or other types of statements (if, while, etc.). For now, we just parse an expression statement.
+Stmt *statement(Parser *parser) {
+    // its do nothing helpful for now but we will use it later for parsing statements like if, while, etc.
+    return stmt_expr(expression(parser));
+}
+
+//=================================
+// we parse everything in the main parse function, which is the entry point for the parser. It will call the appropriate parsing functions based on the current token and build the AST accordingly.
+//=================================
 
 // Parse the tokens into an expression AST. This is the main entry point for the parser.
 Expr *parse(Parser *parser) {

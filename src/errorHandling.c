@@ -18,7 +18,7 @@ void reportError(int line, const char* where, const char* message) {
 
 // report an error with a message and the line number
 void error(Token token, const char* message) {
-    if (token.type == EOF_TOKEN) {
+    if (token.type == TOKEN_EOF) {
         reportError(token.line, "at end", message);
     } else {
         reportError(token.line, token.literal, message);

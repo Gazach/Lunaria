@@ -66,7 +66,7 @@ bool is_truthy(Value *value) {
 Value *eval_unary_minus(Value *operand_value) {
     Value *result = malloc(sizeof(Value));
     result->type = VAL_NUMBER;
-    checkNumberOperand((Token){.type = EOF_TOKEN, .line = 0, .literal = "<unknown>"}, operand_value, operand_value);
+    checkNumberOperand((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, operand_value, operand_value);
     result->as.number = -((Value *)operand_value)->as.number;
     return result;
 }
@@ -89,12 +89,12 @@ void *eval_unary(struct Expr *expr) {
     void *operand_value = evaluate(expr->unary.operand);
     switch (expr->unary.op) {
 
-        case MINUS:
+        case TOKEN_MINUS:
             return eval_unary_minus((Value *)operand_value);
-        case NOT:
+        case TOKEN_NOT:
             return eval_logical_not((Value *)operand_value);
         default:
-            runtime_error((Token){.type = EOF_TOKEN, .line = 0, .literal = "<unknown>"}, "Unknown unary operator.");
+            runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Unknown unary operator.");
             return NULL;
     }
 }
@@ -136,19 +136,19 @@ void *eval_binary(struct Expr *expr) {
     // The function first evaluates the left and right sub-expressions of the binary expression 
     // and then applies the appropriate binary operator to the results. The final result is returned as a void pointer, which can be cast to the appropriate type by the caller.
     switch (expr->binary.op) {
-        case PLUS: {
+        case TOKEN_PLUS: {
             Value *result = malloc(sizeof(Value));
             result->type = VAL_NUMBER;
             result->as.number = left_value->as.number + right_value->as.number;
             return result;
         }
-        case MINUS: {
+        case TOKEN_MINUS: {
             Value *result = malloc(sizeof(Value));
             result->type = VAL_NUMBER;
             result->as.number = left_value->as.number - right_value->as.number;
             return result;
         }
-        case STAR: {
+        case TOKEN_STAR: {
             Value *result = malloc(sizeof(Value));
             result->type = VAL_NUMBER;
             result->as.number = left_value->as.number * right_value->as.number;
@@ -156,9 +156,9 @@ void *eval_binary(struct Expr *expr) {
             
             return result;
         }
-        case SLASH: {
+        case TOKEN_SLASH: {
             if (right_value->as.number == 0) {
-                runtime_error((Token){.type = EOF_TOKEN, .line = 0, .literal = "<unknown>"}, "Division by zero.");
+                runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Division by zero.");
                 return NULL;
             }
             Value *result = malloc(sizeof(Value));
@@ -166,48 +166,48 @@ void *eval_binary(struct Expr *expr) {
             result->as.number = left_value->as.number / right_value->as.number;
             return result;
         }
-        case EQUAL_EQUAL: {
+        case TOKEN_EQUAL_EQUAL: {
             Value *result = malloc(sizeof(Value));
             result->type = VAL_BOOLEAN;
             result->as.boolean = is_equal(left_value, right_value);
             return result;
         }
-        case NOT_EQUAL: {
+        case TOKEN_NOT_EQUAL: {
             Value *result = malloc(sizeof(Value));
             result->type = VAL_BOOLEAN;
             result->as.boolean = !is_equal(left_value, right_value);
             return result;
         }
-        case LESS: {
+        case TOKEN_LESS: {
             Value *result = malloc(sizeof(Value));
-            checkNumberOperand((Token){.type = EOF_TOKEN, .line = 0, .literal = "<unknown>"}, left_value, right_value);
+            checkNumberOperand((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, left_value, right_value);
             result->type = VAL_BOOLEAN;
             result->as.boolean = left_value->as.number < right_value->as.number;
             return result;
         }
-        case LESS_EQUAL: {
+        case TOKEN_LESS_EQUAL: {
             Value *result = malloc(sizeof(Value));
-            checkNumberOperand((Token){.type = EOF_TOKEN, .line = 0, .literal = "<unknown>"}, left_value, right_value);
+            checkNumberOperand((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, left_value, right_value);
             result->type = VAL_BOOLEAN;
             result->as.boolean = left_value->as.number <= right_value->as.number;
             return result;
         }
-        case GREATER: {
+        case TOKEN_GREATER: {
             Value *result = malloc(sizeof(Value));
-            checkNumberOperand((Token){.type = EOF_TOKEN, .line = 0, .literal = "<unknown>"}, left_value, right_value);
+            checkNumberOperand((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, left_value, right_value);
             result->type = VAL_BOOLEAN;
             result->as.boolean = left_value->as.number > right_value->as.number;
             return result;
         }
-        case GREATER_EQUAL: {
+        case TOKEN_GREATER_EQUAL: {
             Value *result = malloc(sizeof(Value));
-            checkNumberOperand((Token){.type = EOF_TOKEN, .line = 0, .literal = "<unknown>"}, left_value, right_value);
+            checkNumberOperand((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, left_value, right_value);
             result->type = VAL_BOOLEAN;
             result->as.boolean = left_value->as.number >= right_value->as.number;
             return result;
         }
         default:
-            runtime_error((Token){.type = EOF_TOKEN, .line = 0, .literal = "<unknown>"}, "Unknown binary operator.");
+            runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Unknown binary operator.");
             return NULL;
     }
 }
@@ -260,7 +260,7 @@ void *evaluate(Expr *expr) {
             return eval_grouping(expr);
         // TODO: Implement evaluation for other expression types (variables, binary, unary, etc.)
         default:
-            runtime_error((Token){.type = EOF_TOKEN, .line = 0, .literal = "<unknown>"}, "Evaluation not implemented for this expression type.");
+            runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Evaluation not implemented for this expression type.");
             return NULL;
     }
 }
