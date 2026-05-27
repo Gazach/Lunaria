@@ -12,7 +12,7 @@ typedef struct {
 } Parser;
 
 Parser *initParser(Token *tokens, int token_count);
-Stmt *parse(Parser *parser);
+StmtList parse(Parser *parser);
 void freeParser(Parser *parser);
 
 #endif // PARSER_H

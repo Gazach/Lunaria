@@ -39,6 +39,7 @@ typedef enum{
 typedef struct {
     const char *name;
     TokenType typeannotation_types; // Optional type annotation as a TokenType
+    Token name_token;
     modifierFlags modifiers;
     Expr *value;
 } VariableDeclaration;
@@ -132,6 +133,12 @@ struct Stmt { // define the structure of a statement
         } variable_declaration_stmt;
     };
 };
+
+typedef struct {
+    Stmt **statements;
+    int count;
+    int capacity;
+} StmtList;
 
 // exposed functions for creating and freeing statements
 void stmt_free(struct Stmt *stmt);

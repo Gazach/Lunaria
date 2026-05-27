@@ -15,7 +15,7 @@
 #include "environment.h"
 
 // Forward declaration of the expression evaluation function.
-void *evaluate(Expr *expr, Environment *env);
+void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt);
 extern int hadRuntimeError; // Flag to indicate if a runtime error has occurred
 void *execute(Stmt *stmt, Environment *env);
 Environment *create_environment();

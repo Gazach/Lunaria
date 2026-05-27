@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
+
+#include "interpreter.h"
 #include "token.h"
 #include "expr.h"
 #include "stmt.h"
@@ -79,22 +82,32 @@ static bool match(Parser *parser, const TokenType *types, int type_count) {
 }
 
 // Consume a token of the expected type, advancing the parser. If the token does not match, report an error.
-Token *consume(Parser *parser, TokenType type, const char *message) {
+static void *consume(Parser *parser, TokenType type, const char *message) {
     if (check(parser, type)) return advance(parser);
-    // Handle error: expected token of type 'type'
-    error(*peek(parser), message);
+
+    // Handle error: expected token of a specific type
+    Token *current = peek(parser);
+    Token eof = {.type = TOKEN_EOF, .line = current ? current->line : parser->line, .literal = "<unknown>"};
+    error(eof, message);
     return NULL;
 }
 
 // Report a parsing error with the given message and the current line number.
 static void parseError(Parser *parser, const char *message) {
-    error(*peek(parser), message);
-    return;
+    Token *current = peek(parser);
+    if (current) {
+        Token eof = {.type = TOKEN_EOF, .line = current->line, .literal = "<unknown>"};
+        error(eof, message);
+    } else {
+        Token eof = {.type = TOKEN_EOF, .line = parser->line, .literal = "<unknown>"};
+        error(eof, message);
+    }
 }
 
 // Synchronize the parser after an error by advancing until we find a statement boundary.
 // This helps to prevent cascading errors and allows the parser to continue parsing after an error.
 void synchronize(Parser *parser) {
+    if (isAtEnd(parser)) return;
     advance(parser);
 
     while (!isAtEnd(parser)) {
@@ -144,7 +157,7 @@ Expr *primary(Parser *parser) {
         return expr_literal(strtod(previous(parser)->literal, NULL));
     }
     if (match(parser, (TokenType[]){TOKEN_STRING}, 1)) {
-        return expr_string(previous(parser)->literal);
+        return expr_string(STRDUP(previous(parser)->literal));
     }
     if (match(parser, (TokenType[]){TOKEN_LEFT_PAREN}, 1)) {
         Expr *expr = expression(parser);
@@ -260,13 +273,16 @@ Stmt *var_Declaration(Parser *parser) {
     }
     
 
-    // we get the variable name from the previous token (which should be the identifier we just matched) and store it in a VariableDeclaration struct along with the modifiers we parsed earlier. We then check for an optional initializer (the '=' token followed by an expression) and store that in the VariableDeclaration as well. Finally, we check for a semicolon at the end of the declaration and report an error if it's missing.
-    const char *name = previous(parser)->literal;
+    
+    Token *nameToken = previous(parser);
+    const char *name = nameToken->literal;
 
     // Create a VariableDeclaration struct to hold the variable information, including its name and modifiers.
 
     VariableDeclaration *variable = malloc(sizeof(VariableDeclaration));
-    variable->name = name;
+    
+    variable->name = _strdup(nameToken->literal);
+    variable->name_token = *nameToken;
     variable->modifiers = MODIFIER_NONE;
     if (is_mutable) variable->modifiers |= MODIFIER_MUTABLE;
     if (is_static) variable->modifiers |= MODIFIER_STATIC;
@@ -288,7 +304,7 @@ Stmt *var_Declaration(Parser *parser) {
         }
         if (!found_type) {
             parseError(parser, "Expected type annotation after ':'.");
-            free(variable);
+            free((void *)variable->name); // Free the variable name string
             return NULL;
         }
     
@@ -298,7 +314,7 @@ Stmt *var_Declaration(Parser *parser) {
     // check equal sign for initializer
     if (!match(parser, (TokenType[]){TOKEN_EQUAL}, 1)) {
         parseError(parser, "Expected '=' after variable name.");
-        free(variable);
+        free((void *)variable->name); // Free the variable name string
         return NULL;
     }
 
@@ -306,7 +322,7 @@ Stmt *var_Declaration(Parser *parser) {
     // check for semicolon at the end of the declaration
     if (!match(parser, (TokenType[]){TOKEN_SEMICOLON}, 1)) {
         parseError(parser, "Expected ';' after variable declaration.");
-        free(variable);
+        free((void *)variable->name); // Free the variable name string
         return NULL;
     }
 
@@ -335,14 +351,29 @@ Stmt *statement(Parser *parser) {
 //=================================
 
 //we parse everything in the main parse function, which is the entry point for the parser. It will call the appropriate parsing functions based on the current token and build the AST accordingly.
-Stmt *parse(Parser *parser) {
-    Stmt *stmt = Declaration(parser);
-    if (stmt == NULL) {
-        return NULL; // Parsing failed, return NULL
-    }
-    return stmt;
-}
+StmtList parse(Parser *parser) {
+    StmtList statements;
+    statements.statements = NULL;
+    statements.count = 0;
+    statements.capacity = 0;
 
+    while (!isAtEnd(parser)) {
+        if (isAtEnd(parser)) break;
+        Stmt *decl = Declaration(parser);
+        if (decl != NULL) {
+            if (statements.count >= statements.capacity) {
+                int newCapacity = statements.capacity == 0 ? 8 : statements.capacity * 2;
+                statements.statements = realloc(statements.statements, newCapacity * sizeof(Stmt *));
+                statements.capacity = newCapacity;
+            }
+            statements.statements[statements.count++] = decl;
+        } else {
+            synchronize(parser);
+        }
+    }
+
+    return statements;
+}
 // Free the memory used by the parser.
 void freeParser(Parser *parser) {
     free(parser);

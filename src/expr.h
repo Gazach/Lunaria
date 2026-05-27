@@ -32,6 +32,7 @@ struct Expr { // define the structure of an expression
         struct {
             char *name;
             Type type;
+            Token name_token; // Store the token for better error reporting
         } variable;
         struct {
             bool value;

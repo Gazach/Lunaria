@@ -88,7 +88,13 @@ static void pushToken(TokenArray* array, Token token) {
 }
 // Free the memory used by the token array
 void freeTokenArray(TokenArray* array) {
-    free(array->data);
+    for (int i = 0; i < array->count; i++) {
+        if (array->data[i].literal) {
+            free((char*)array->data[i].literal); // Free the literal string if it exists
+            array->data[i].literal = NULL;
+        }
+    }
+    free(array->data); // Free the array of tokens
     array->data = NULL;
     array->count = 0;
     array->capacity = 0;

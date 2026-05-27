@@ -1,0 +1,24 @@
+// this is a code to test if a variable able to declared and send a runtime error properly
+
+// correct declaration
+
+let x = 10;
+let hello = "this is string";
+let isIttrue = true;
+let pi = 3.14;
+
+// explicit declaration :
+
+let y:int = 20;
+let thisisstring:string = "hello world!";
+let isItFalse:bool = false;
+let phi:float = 3.14;
+
+// error runtime code (expect error from line 19 to 24):
+
+let z = 20 //expect ; error
+
+let a:int = 9.0; //expect error for int
+let maybe:bool = "dwada"; // expect error for bool
+let notsting:string = 554; // expect error for string
+let notfloat:float = "wdadw"; // expect error for float

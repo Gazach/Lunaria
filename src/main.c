@@ -17,7 +17,7 @@ int hadRuntimeError = 0;
 
 // Run the given source code by lexing, parsing, and interpreting it.
 void run(const char* source) {
-    hadRuntimeError = 0; 
+    hadRuntimeError = 0;
     hadError = 0;
     printf("Lexing...\n");
     Lexer lexer;
@@ -25,19 +25,22 @@ void run(const char* source) {
     TokenArray tokens = scanTokens(&lexer);
     printf("Parsing...\n");
     Parser *parser = initParser(tokens.data, tokens.count);
-    Stmt *stmt = parse(parser);
+    StmtList statements = parse(parser);
     printf("Freeing parser...\n");
     freeParser(parser);
     freeTokenArray(&tokens);
-    if (stmt != NULL) {
-        printf("Interpreting...\n");
-        Environment *env = create_environment(); // Create a new environment
-        interpreter(stmt, env); // Pass the environment to the interpreter
-        free_environment(env); // Free the environment after interpretation
-        stmt_free(stmt); // Make sure to free the AST if you have a function for it
-    } else {
-        printf("Parsing failed. No expression to interpret.\n");
+
+    printf("Interpreting...\n");
+    Environment *env = create_environment();
+    for (int i = 0; i < statements.count; i++) {
+        hadRuntimeError = 0; // reset between statements
+        interpreter(statements.statements[i], env);
     }
+    free_environment(env);
+
+    // free the list
+    for (int i = 0; i < statements.count; i++) stmt_free(statements.statements[i]);
+    free(statements.statements);
 }
 // run a file with the given filename
 // if the file does not exist, print an error message and return

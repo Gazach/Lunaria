@@ -124,7 +124,7 @@ void expr_free(struct Expr *e) {
             expr_free(e->unary.operand);
             break;
         case EXPR_STRING:
-            free((char *)e->string.value);
+            free((void *)e->string.value);
             break;
          case EXPR_BOOLEAN:
             break;
