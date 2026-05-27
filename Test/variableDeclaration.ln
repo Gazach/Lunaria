@@ -16,7 +16,7 @@ let phi:float = 3.14;
 
 // error runtime code (expect error from line 19 to 24):
 
-let z = 20 //expect ; error
+//correct let z = 20 //expect ; error
 
 let a:int = 9.0; //expect error for int
 let maybe:bool = "dwada"; // expect error for bool

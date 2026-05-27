@@ -52,7 +52,8 @@ static const char* tokenTypeName(TokenType type) {
         case TOKEN_IMPORT:                return "IMPORT";
         case TOKEN_PRINT:                 return "PRINT";
         case TOKEN_IDENTIFIER:            return "IDENTIFIER";
-        case TOKEN_NUMBER:                return "NUMBER";
+        case TOKEN_INT:                   return "INT";
+        case TOKEN_FLOAT:                 return "FLOAT";
         case TOKEN_SWITCH:                return "SWITCH";
         case TOKEN_CASE:                  return "CASE";
         case TOKEN_DEFAULT:               return "DEFAULT";

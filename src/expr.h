@@ -3,6 +3,7 @@
 
 #include "token.h"
 #include "stdbool.h"
+#include "tokenType.h"
 #include "type.h"
 
 typedef struct Expr Expr;
@@ -28,6 +29,7 @@ struct Expr { // define the structure of an expression
     union {
         struct {
             double value;
+            TokenType type; // Store the type of the literal for better type checking during interpretation
         } literal;
         struct {
             char *name;
@@ -77,7 +79,7 @@ struct Expr { // define the structure of an expression
 // exposed functions for creating and freeing expressions
 void expr_free(struct Expr *expr);
 
-struct Expr *expr_literal(double value);
+struct Expr *expr_literal(double value, TokenType type);
 struct Expr *expr_variable(char *name, Type type);
 struct Expr *expr_binary(TokenType op, struct Expr *left, struct Expr *right);
 struct Expr *expr_unary(TokenType op, struct Expr *operand);

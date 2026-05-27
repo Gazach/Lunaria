@@ -5,7 +5,8 @@
 #include <stdbool.h>
 
 typedef enum {
-    VAL_NUMBER,
+    VAL_INT,
+    VAL_FLOAT,
     VAL_STRING,
     VAL_BOOLEAN,
     VAL_NULL,
@@ -14,7 +15,8 @@ typedef enum {
 typedef struct {
     ValueType type;
     union {
-        double number;
+        int int_value;
+        double float_value;
         const char *string;
         bool boolean;
     } as;

@@ -10,6 +10,7 @@
 #include "errorHandling.h"
 #include "tokenType.h"
 
+
 // Define the structure of the parser, which holds the list of tokens and the current position in that list.
 typedef struct {
     Token *data;
@@ -151,10 +152,11 @@ Expr *primary(Parser *parser) {
         return expr_boolean(true);
     }
     if (match(parser, (TokenType[]){TOKEN_NIL}, 1)) {
-        return expr_literal(0); 
+        return expr_literal(0, TOKEN_NIL); 
     }
-    if (match(parser, (TokenType[]){TOKEN_NUMBER}, 1)) {
-        return expr_literal(strtod(previous(parser)->literal, NULL));
+    if (match(parser, (TokenType[]){TOKEN_INT, TOKEN_FLOAT}, 2)) {
+        TokenType numType = previous(parser)->type;
+        return expr_literal(strtod(previous(parser)->literal, NULL), numType);
     }
     if (match(parser, (TokenType[]){TOKEN_STRING}, 1)) {
         return expr_string(STRDUP(previous(parser)->literal));

@@ -10,11 +10,12 @@ struct Expr *expr_new(ExprType type, struct Expr *left, struct Expr *right) {
     return e;
 }
 
-// Create a new literal expression with the given value.
-struct Expr *expr_literal(double value) {
+// Create a new literal expression with the given value and type.
+struct Expr *expr_literal(double value, TokenType type) {
     struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_LITERAL;
     e->literal.value    = value;
+    e->literal.type     = type;
     return e;
 }
 

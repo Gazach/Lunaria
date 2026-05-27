@@ -218,16 +218,20 @@ static bool isDigit(char c) {
     return c >= '0' && c <= '9';
 }
 
+
+
 // Scan a number literal, handling integer and floating-point formats
 static void number(Lexer* lexer, TokenArray* tokens) {
+    bool isFloat = false;
+
     while (isDigit(peek(lexer))) advance(lexer);
 
     // Look for a fractional part.
     // if we see a '.' followed by a digit, it's a floating-point number
     if (peek(lexer) == '.' && isDigit(peekNext(lexer))) {
         // Consume the "."
+        isFloat = true;
         advance(lexer);
-
         while (isDigit(peek(lexer))) advance(lexer);
     }
 
@@ -237,7 +241,7 @@ static void number(Lexer* lexer, TokenArray* tokens) {
     value[length] = '\0';
 
     // Add the number token with the literal value as a string
-    addTokenLiteral(lexer, tokens, TOKEN_NUMBER, value);
+    addTokenLiteral(lexer, tokens, isFloat ? TOKEN_FLOAT : TOKEN_INT, value);
 }
 
 static bool isAlpha(char c) {
