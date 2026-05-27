@@ -431,6 +431,8 @@ Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
                 type_ok = init_value->type == VAL_FLOAT || init_value->type == VAL_INT; // Allow implicit int to float conversion
                 break;
             case TOKEN_TYPE_CHAR:
+                type_ok = init_value->type == VAL_STRING && strlen(init_value->as.string) == 1; // A char is a string of length 1
+                break;
             case TOKEN_TYPE_STRING:
                 type_ok = init_value->type == VAL_STRING;
                 break;
