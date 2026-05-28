@@ -1,6 +1,5 @@
 #include "stmt.h"
 #include "expr.h"
-#include "interpreter.h"
 #include <stdlib.h>
 
 // Create a new statement node with the given type and associated data.

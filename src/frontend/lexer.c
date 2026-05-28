@@ -5,8 +5,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include "lexer.h"
-#include "errorHandling.h"
-#include "tokenType.h"
+
 
 //==============================
 // ---- Keywords table ----

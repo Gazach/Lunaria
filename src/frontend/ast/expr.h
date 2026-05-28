@@ -1,10 +1,10 @@
 #ifndef EXPR_H
 #define EXPR_H
 
-#include "token.h"
+#include "../../common/token.h"
 #include "stdbool.h"
-#include "tokenType.h"
-#include "type.h"
+#include "../../common/tokenType.h"
+#include "../../common/type.h"
 
 typedef struct Expr Expr;
 

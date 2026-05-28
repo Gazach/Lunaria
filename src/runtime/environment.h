@@ -1,7 +1,7 @@
 #ifndef ENVIRONMENT_H
 #define ENVIRONMENT_H
 
-#include "value.h"
+#include "../common/value.h"
 
 typedef struct Environment Environment;
 

@@ -1,7 +1,7 @@
 #ifndef RUNTIME_ERROR_H
 #define RUNTIME_ERROR_H
 
-#include "token.h"
+#include "../common/token.h"
 #include "environment.h"
 
 // Runtime error handling for Lunaris Language

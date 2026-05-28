@@ -1,5 +1,7 @@
 #pragma once
-#include "token.h"
+#include "../common/token.h"
+#include "../common/errorHandling.h"
+#include "../common/tokenType.h"
 
 typedef struct {
     Token* data;

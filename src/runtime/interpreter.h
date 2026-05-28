@@ -6,12 +6,12 @@
 #define STRDUP strdup
 #endif
 
-#include "expr.h"
-#include "stmt.h"
-#include "tokenType.h"
+#include "../frontend/ast/expr.h"
+#include "../frontend/ast/stmt.h"
+#include "../common/tokenType.h"
 #include "runtimeError.h"
-#include "value.h"
-#include "tokenType.h"
+#include "../common/value.h"
+#include "../common/tokenType.h"
 #include "environment.h"
 
 // Forward declaration of the expression evaluation function.

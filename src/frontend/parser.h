@@ -1,8 +1,8 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "token.h"
-#include "stmt.h"
+#include "../common/token.h"
+#include "ast/stmt.h"
 
 typedef struct {
 	Token *data;

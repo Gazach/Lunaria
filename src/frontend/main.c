@@ -6,11 +6,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "errorHandling.h"
-#include "lexer.h"
-#include "parser.h"
-#include "interpreter.h"
-#include "environment.h"
+#include "../common/errorHandling.h"
+#include "../frontend/lexer.h"
+#include "../frontend/parser.h"
+#include "../runtime/interpreter.h"
+#include "../runtime/environment.h"
 
 // Flag to indicate if a runtime error has occurred
 int hadRuntimeError = 0;

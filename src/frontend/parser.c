@@ -3,12 +3,12 @@
 #include <string.h>
 
 
-#include "interpreter.h"
-#include "token.h"
-#include "expr.h"
-#include "stmt.h"
-#include "errorHandling.h"
-#include "tokenType.h"
+#include "../runtime/interpreter.h"
+#include "../common/token.h"
+#include "../frontend/ast/expr.h"
+#include "../frontend/ast/stmt.h"
+#include "../common/errorHandling.h"
+#include "../common/tokenType.h"
 
 
 // Define the structure of the parser, which holds the list of tokens and the current position in that list.
