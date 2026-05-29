@@ -53,6 +53,7 @@ struct Expr { // define the structure of an expression
         } unary;
         struct {
             char *name;
+            Token name_token; // Store the token for better error reporting
             LunarisType return_type;
             struct Expr **args;
             int arg_count;

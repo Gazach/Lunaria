@@ -435,6 +435,39 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             result->as.boolean = expr->boolean.value;
             return result;
         }
+        case EXPR_CALL: {
+            Value *callee = env_get_variable(env, expr->call.name);
+            if (!callee || callee->type != TYPE_FUNCTION) {
+                runtime_error(expr->call.name_token, "Undefined function '%s'.", expr->call.name);
+                return NULL;
+            }
+            FunctionValue *fn = callee->as.function;
+            Environment *fn_env = env_create_child(fn->closure);
+
+            for (int i = 0; i < fn->param_count; i++) {
+                Value *arg = (Value *)evaluate(expr->call.args[i], env, stmt);
+                env_set_variable(fn_env, fn->param_names[i], false, *arg);
+                free(arg);
+            }
+
+            Value result = (Value){ .type = TYPE_NULL };
+            for (int i = 0; i < fn->body_count; i++) {
+                void *signal = execute(fn->body[i], fn_env);
+                if (signal != NULL) {
+                    returnSignal *ret = (returnSignal *)signal;
+                    if (ret->is_return) {
+                        result = ret->return_value;
+                        free(ret);
+                        break;
+                    }
+                }
+            }
+
+            free_environment(fn_env);
+            Value *heap_result = malloc(sizeof(Value));
+            *heap_result = result;
+            return heap_result;
+        }
         // TODO: Implement evaluation for other expression types (variables, binary, unary, etc.)
         default:
             runtime_error(stmt->variable_declaration_stmt.variable->name_token, "Evaluation not implemented for this expression type.", NULL);
@@ -453,12 +486,37 @@ void *execute(Stmt *stmt, Environment *env) {
         }
         case STMT_BLOCK: {
             Environment *block_env = env_create_child(env);
+            void *result = NULL;
             for (int i = 0; i < stmt->block_stmt.statement_count; i++) {
-                execute(stmt->block_stmt.statements[i], block_env);
+                result = execute(stmt->block_stmt.statements[i], block_env);
                 hadRuntimeError = 0;
+                if (result != NULL) break; // bubble the return signal up
             }
             free_environment(block_env);
+            return result; // pass it to whoever called this block
+        }
+        case STMT_FUNCTION_DECLARATION: {
+            FunctionValue *fn = malloc(sizeof(FunctionValue));
+            fn->param_names = stmt->function_declaration_stmt.param_names;
+            fn->param_count = stmt->function_declaration_stmt.param_count;
+            fn->body = stmt->function_declaration_stmt.body;
+            fn->body_count = stmt->function_declaration_stmt.body_count;
+            fn->closure = env;
+            Value fn_value = { .type = TYPE_FUNCTION, .as.function = fn };
+            env_set_variable(env, stmt->function_declaration_stmt.name, false, fn_value);
             return NULL;
+        }
+        case STMT_RETURN: {
+            returnSignal *signal = malloc(sizeof(returnSignal));
+            signal->is_return = true;
+            if (stmt->return_stmt.value != NULL) {
+                Value *val = (Value *)evaluate(stmt->return_stmt.value, env, stmt);
+                signal->return_value = *val;
+                free(val);
+            } else {
+                signal->return_value = (Value){ .type = TYPE_NULL };
+            }
+            return signal; // bubble up            
         }
         default:
             runtime_error(stmt->variable_declaration_stmt.variable->name_token, "Execution not implemented for this statement type.", NULL);

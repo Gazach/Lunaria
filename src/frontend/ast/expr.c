@@ -62,6 +62,7 @@ struct Expr *expr_call(char *name, LunarisType return_type, struct Expr **args, 
     e->call.return_type = return_type;
     e->call.args        = args;
     e->call.arg_count   = arg_count;
+    e->call.name_token  = (Token){.type = TOKEN_IDENTIFIER, .line = 0, .literal = name}; // add this
     return e;
 }
 

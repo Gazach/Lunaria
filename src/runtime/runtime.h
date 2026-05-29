@@ -14,6 +14,11 @@
 #include "../common/tokenType.h"
 #include "environment.h"
 
+typedef struct {
+    bool is_return;
+    Value return_value;
+} returnSignal;
+
 // Forward declaration of the expression evaluation function.
 void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt);
 extern int hadRuntimeError; // Flag to indicate if a runtime error has occurred

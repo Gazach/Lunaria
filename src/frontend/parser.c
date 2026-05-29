@@ -157,6 +157,32 @@ Expr *primary(Parser *parser) {
     if (match(parser, (TokenType[]){TOKEN_NIL}, 1)) {
         return expr_literal(0, TOKEN_NIL); 
     }
+    if (match(parser, (TokenType[]){TOKEN_IDENTIFIER}, 1)) {
+        char *name = STRDUP(previous(parser)->literal);
+        if (match(parser, (TokenType[]){TOKEN_LEFT_PAREN}, 1)) {
+            // Function call
+            Expr **arguments = NULL;
+            int arg_count = 0;
+            int arg_capacity = 0;
+
+            if (!check(parser, TOKEN_RIGHT_PAREN)) {
+                do {
+                    if (arg_count >= arg_capacity) {
+                        int newCapacity = arg_capacity == 0 ? 8 : arg_capacity * 2;
+                        arguments = realloc(arguments, newCapacity * sizeof(Expr *));
+                        arg_capacity = newCapacity;
+                    }
+                    arguments[arg_count++] = expression(parser);
+                } while (match(parser, (TokenType[]){TOKEN_COMMA}, 1));
+            }
+
+            consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after arguments.");
+            return expr_call(name, TYPE_FUNCTION, arguments, arg_count);
+        } else {
+            // Variable
+            return expr_variable(name, TYPE_NULL);
+        }
+    }
     if (match(parser, (TokenType[]){TOKEN_INT, TOKEN_FLOAT}, 2)) {
         TokenType numType = previous(parser)->type;
         return expr_literal(strtod(previous(parser)->literal, NULL), numType);
@@ -372,17 +398,106 @@ Stmt *var_Declaration(Parser *parser) {
     return stmt_variable_declaration(variable);
 }
 
+// function declaration statement.
+Stmt *parse_FunctionDeclaration(Parser *parser) {
+    if (!match(parser, (TokenType[]){TOKEN_FUNCTION}, 1)) {
+        parseError(parser, "Expected 'fn' as keyword.");
+        return NULL;
+    }
+    if (!match(parser, (TokenType[]){TOKEN_IDENTIFIER}, 1)) {
+        parseError(parser, "Expected function name.");
+        return NULL;
+    }
+    char *name = STRDUP(previous(parser)->literal);
+
+    if (!match(parser, (TokenType[]){TOKEN_LEFT_PAREN}, 1)) {
+        parseError(parser, "Expected '(' after function name.");
+        free(name);
+        return NULL;
+    }
+
+    // parse parameters
+    char **param_names = NULL;
+    int param_count = 0;
+    int param_capacity = 0;
+
+    if (!check(parser, TOKEN_RIGHT_PAREN)) {
+        do {
+            if (!match(parser, (TokenType[]){TOKEN_IDENTIFIER}, 1)) {
+                parseError(parser, "Expected parameter name.");
+                free(name);
+                return NULL;
+            }
+            if (param_count >= param_capacity) {
+                int newCapacity = param_capacity == 0 ? 4 : param_capacity * 2;
+                param_names = realloc(param_names, newCapacity * sizeof(char *));
+                param_capacity = newCapacity;
+            }
+            param_names[param_count++] = STRDUP(previous(parser)->literal);
+        } while (match(parser, (TokenType[]){TOKEN_COMMA}, 1));
+    }
+
+    if (!match(parser, (TokenType[]){TOKEN_RIGHT_PAREN}, 1)) {
+        parseError(parser, "Expected ')' after function parameters.");
+        free(name);
+        return NULL;
+    }
+
+    Stmt *body = parse_block(parser);
+    if (!body) {
+        parseError(parser, "Expected function scope.");
+        free(name);
+        return NULL;
+    }
+
+    return stmt_function_declaration(
+        name,
+        param_names, NULL, param_count,
+        NULL,
+        body->block_stmt.statements,
+        body->block_stmt.statement_count
+    );
+}
+
+Stmt *parse_return(Parser *parser) {
+    if (!match(parser, (TokenType[]){TOKEN_RETURN}, 1)) {
+        parseError(parser, "Expected 'return' as keyword.");
+        return NULL;
+    }
+    Expr *value = NULL;
+    if (!check(parser, TOKEN_SEMICOLON)) {
+        value = expression(parser);
+    }
+    if (!match(parser, (TokenType[]){TOKEN_SEMICOLON}, 1)) {
+        parseError(parser, "Expected ';' after return value.");
+        return NULL;
+    }
+    return stmt_return(value);
+}
+
 Stmt *Declaration(Parser *parser){
     // check if the current token is 'let' or 'const' for variable declaration, and then check if the next token is an identifier for the variable name, and then check if the next token is '=' for variable initialization. If any of these checks fail, we report a parsing error with an appropriate message.
     if (match(parser, (TokenType[]){TOKEN_LET, TOKEN_CONST}, 2)) {
         return var_Declaration(parser);
     } else if (check(parser, TOKEN_LEFT_BRACE)) {
         return parse_block(parser);
+    } else if (check(parser, TOKEN_FUNCTION)) {
+    return parse_FunctionDeclaration(parser);
+    } else if (check(parser, TOKEN_RETURN)) {
+        return parse_return(parser);
     }
     else {
-        parseError(parser, "Expected declaration.");
-        synchronize(parser);
-        return NULL;
+        Expr *expr = expression(parser);
+        if (expr == NULL) {
+            parseError(parser, "Expected declaration.");
+            synchronize(parser);
+            return NULL;
+        }
+        if (!match(parser, (TokenType[]){TOKEN_SEMICOLON}, 1)) {
+            parseError(parser, "Expected ';' after expression.");
+            return NULL;
+        }
+        return stmt_expr(expr);
     }
 }
 
