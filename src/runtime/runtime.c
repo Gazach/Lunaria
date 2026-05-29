@@ -8,6 +8,7 @@
 
 #include "runtime.h"
 
+
 // Forward declaration of the expression evaluation function.
 void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt);
 void *execute(Stmt *stmt, Environment *env);
@@ -411,6 +412,9 @@ Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
 
 // Main function to evaluate an expression and return its result. This is where the core interpretation logic will go.
 void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
+    // debug
+        // printf("evaluate: expr type = %d\n", expr->type);
+        // fflush(stdout);
     // check the type of the expression and evaluate it accordingly
     switch (expr->type) {
         case EXPR_LITERAL:
@@ -436,12 +440,24 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             return result;
         }
         case EXPR_CALL: {
+
+            if (is_builtin(expr->call.name)) {
+                Value **args = malloc(expr->call.arg_count * sizeof(Value *));
+                for (int i = 0; i < expr->call.arg_count; i++) {
+                    args[i] = (Value *)evaluate(expr->call.args[i], env, stmt);
+                }
+                Value *result = call_builtin(expr->call.name, args, expr->call.arg_count);
+                free(args);
+                return result;
+            }
+
             Value *callee = env_get_variable(env, expr->call.name);
             if (!callee || callee->type != TYPE_FUNCTION) {
                 runtime_error(expr->call.name_token, "Undefined function '%s'.", expr->call.name);
                 return NULL;
             }
             FunctionValue *fn = callee->as.function;
+            // printf("fn->body_count=%d\n", fn->body_count); fflush(stdout);
             Environment *fn_env = env_create_child(fn->closure);
 
             for (int i = 0; i < fn->param_count; i++) {
@@ -453,8 +469,10 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             Value result = (Value){ .type = TYPE_NULL };
             for (int i = 0; i < fn->body_count; i++) {
                 void *signal = execute(fn->body[i], fn_env);
+                // printf("signal=%p\n", signal); fflush(stdout);
                 if (signal != NULL) {
                     returnSignal *ret = (returnSignal *)signal;
+                    // printf("is_return=%d\n", ret->is_return); fflush(stdout);
                     if (ret->is_return) {
                         result = ret->return_value;
                         free(ret);
@@ -463,13 +481,18 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
                 }
             }
 
+            
+            // printf("EXPR_CALL body done\n"); fflush(stdout);
             free_environment(fn_env);
+            // printf("fn_env freed\n"); fflush(stdout);
             Value *heap_result = malloc(sizeof(Value));
             *heap_result = result;
-            return heap_result;
+            return heap_result;   // THIS was missing
+        
         }
         // TODO: Implement evaluation for other expression types (variables, binary, unary, etc.)
         default:
+            printf("UNHANDLED expr type = %d\n", expr->type); fflush(stdout);
             runtime_error(stmt->variable_declaration_stmt.variable->name_token, "Evaluation not implemented for this expression type.", NULL);
             return NULL;
     }
@@ -477,6 +500,10 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
 
 // Main function to execute a statement. This will be used to execute statements during interpretation, such as variable declarations, expression statements, etc.
 void *execute(Stmt *stmt, Environment *env) {
+    // debug
+    // printf("evaluate: stmt type = %d\n", stmt->type);
+    // fflush(stdout);
+
     // check the type of the statement and execute it accordingly
     switch (stmt->type) {
         case STMT_EXPR:
@@ -512,11 +539,11 @@ void *execute(Stmt *stmt, Environment *env) {
             if (stmt->return_stmt.value != NULL) {
                 Value *val = (Value *)evaluate(stmt->return_stmt.value, env, stmt);
                 signal->return_value = *val;
-                free(val);
+                // DO NOT free(val) here — it points into the environment
             } else {
                 signal->return_value = (Value){ .type = TYPE_NULL };
             }
-            return signal; // bubble up            
+            return signal;
         }
         default:
             runtime_error(stmt->variable_declaration_stmt.variable->name_token, "Execution not implemented for this statement type.", NULL);
@@ -527,12 +554,14 @@ void *execute(Stmt *stmt, Environment *env) {
 // Main function to interpret an expression and print its result. This is the entry point for the interpreter.
 void interpreter(struct Stmt *stmt, Environment *env) {
     void *result = execute(stmt, env);
-    if (hadRuntimeError) {
-        return;
-    }
+    if (hadRuntimeError) return;
     if (result) {
-        char *result_str = stringifyValue((Value *)result);
-        printf("%s\n", result_str);
-        free(result_str);
+        Value *val = (Value *)result;
+        if (val->type != TYPE_NULL) {
+            char *str = stringifyValue(val);
+            printf("%s\n", str);
+            free(str);
+        }
+        free(result);
     }
 }

@@ -13,6 +13,7 @@
 #include "../common/value.h"
 #include "../common/tokenType.h"
 #include "environment.h"
+#include "builtIn.h"
 
 typedef struct {
     bool is_return;
@@ -27,6 +28,6 @@ Environment *env_create_child(Environment *parent);
 void free_environment(Environment *env);
 // Main function to interpret an expression and print its result. This is the entry point for the interpreter.
 void interpreter(struct Stmt *stmt, Environment *env);
-
+char *stringifyValue(Value *value);
 
 #endif // RUNTIME_H

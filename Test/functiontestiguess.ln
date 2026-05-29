@@ -1,4 +1,7 @@
-fn hello(){
-    let a = "hello world";
+fn hello(a, b){
+    let c = a + b;
+
+    return b;
 }
 
+print(hello(1, 2));

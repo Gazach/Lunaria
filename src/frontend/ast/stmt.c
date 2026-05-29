@@ -222,7 +222,8 @@ void stmt_free(struct Stmt *stmt) {
             free(stmt->function_declaration_stmt.name);
             for (int i = 0; i < stmt->function_declaration_stmt.param_count; i++) {
                 free(stmt->function_declaration_stmt.param_names[i]);
-                free(stmt->function_declaration_stmt.param_types[i]);
+                if (stmt->function_declaration_stmt.param_types)  
+                    free(stmt->function_declaration_stmt.param_types[i]);
             }
             free(stmt->function_declaration_stmt.param_names);
             free(stmt->function_declaration_stmt.param_types);

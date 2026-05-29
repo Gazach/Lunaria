@@ -51,15 +51,17 @@ void *env_set_variable(Environment *env, const char *name, bool is_mutable, Valu
 
 // Get the value of a variable from the environment by its name. This will be used to retrieve variable values during interpretation.
 Value *env_get_variable(Environment *env, const char *name) {
+    // printf("env_get: looking for '%s' env=%p parent=%p\n", name, (void*)env, (void*)env->parent);
+    // fflush(stdout);
     for (int i = 0; i < env->count; i++) {
         if (strcmp(env->entries[i].name, name) == 0) {
-            return &env->entries[i].value; // Return pointer to the variable's value
+            return &env->entries[i].value;
         }
     }
     if (env->parent != NULL) {
-        return env_get_variable(env->parent, name); // Look in parent environment
+        return env_get_variable(env->parent, name);
     }
-    return NULL; // Variable not found
+    return NULL;
 }
 
 //=================

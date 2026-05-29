@@ -19,29 +19,30 @@ int hadRuntimeError = 0;
 void run(const char* source) {
     hadRuntimeError = 0;
     hadError = 0;
-    printf("Lexing...\n");
+    //printf("Lexing...\n");
     Lexer lexer;
     initLexer(&lexer, source);
     TokenArray tokens = scanTokens(&lexer);
-    printf("Parsing...\n");
+    //printf("Parsing...\n");
     Parser *parser = initParser(tokens.data, tokens.count);
     StmtList statements = parse(parser);
-    printf("Freeing parser...\n");
+    //printf("Freeing parser...\n");
     freeParser(parser);
     freeTokenArray(&tokens);
 
-    printf("Interpreting...\n");
+    //printf("Interpreting...\n");
     Environment *env = create_environment();
     for (int i = 0; i < statements.count; i++) {
-        
         interpreter(statements.statements[i], env);
-        hadRuntimeError = 0; // reset between statements
+        hadRuntimeError = 0;
+        //printf("done stmt %d\n", i);  // add this
+        //fflush(stdout);
     }
+    //printf("freeing env\n"); fflush(stdout);
     free_environment(env);
-
-    // free the list
+    //printf("freeing stmts\n"); fflush(stdout);
     for (int i = 0; i < statements.count; i++) stmt_free(statements.statements[i]);
-    free(statements.statements);
+    //printf("done\n"); fflush(stdout);
 }
 // run a file with the given filename
 // if the file does not exist, print an error message and return
