@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "interpreter.h"
+#include "runtime.h"
 
 // Forward declaration of the expression evaluation function.
 void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt);

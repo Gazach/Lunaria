@@ -3,7 +3,7 @@
 #include <string.h>
 
 
-#include "../runtime/interpreter.h"
+#include "../runtime/runtime.h"
 #include "../common/token.h"
 #include "../frontend/ast/expr.h"
 #include "../frontend/ast/stmt.h"
