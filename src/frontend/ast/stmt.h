@@ -40,6 +40,7 @@ typedef struct {
     const char *name;
     TokenType typeannotation_types; // Optional type annotation as a TokenType
     Token name_token;
+    bool is_mutable;
     modifierFlags modifiers;
     Expr *value;
 } VariableDeclaration;

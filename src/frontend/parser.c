@@ -128,7 +128,6 @@ void synchronize(Parser *parser) {
             case TOKEN_ELSE:
             case TOKEN_ELIF:
             case TOKEN_IMPORT:
-            case TOKEN_PRINT:
             case TOKEN_SWITCH:
             case TOKEN_CASE:
             case TOKEN_DEFAULT:

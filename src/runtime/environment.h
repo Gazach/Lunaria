@@ -2,12 +2,14 @@
 #define ENVIRONMENT_H
 
 #include "../common/value.h"
+#include <stdbool.h>
 
 typedef struct Environment Environment;
 
 typedef struct {
     char *name;
     Value value;
+    bool is_mutable; 
 } Entry;
 
 struct Environment{
@@ -19,7 +21,7 @@ struct Environment{
 
 // exposed functions for environment management
 Environment *create_environment();
-void *env_set_variable(Environment *env, const char *name, Value value);
+void *env_set_variable(Environment *env, const char *name, bool is_mutable, Value value);
 Value *env_get_variable(Environment *env, const char *name);
 void free_environment(Environment *env);
 

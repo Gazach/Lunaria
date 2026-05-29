@@ -1,5 +1,5 @@
-#ifndef INTERPRETER_H
-#define INTERPRETER_H
+#ifndef RUNTIME_H
+#define RUNTIME_H
 #ifdef _WIN32
 #define STRDUP _strdup
 #else
@@ -18,10 +18,10 @@
 void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt);
 extern int hadRuntimeError; // Flag to indicate if a runtime error has occurred
 void *execute(Stmt *stmt, Environment *env);
-Environment *create_environment();
+Environment *env_create_child(Environment *parent);
 void free_environment(Environment *env);
 // Main function to interpret an expression and print its result. This is the entry point for the interpreter.
 void interpreter(struct Stmt *stmt, Environment *env);
 
 
-#endif // INTERPRETER_H
+#endif // RUNTIME_H

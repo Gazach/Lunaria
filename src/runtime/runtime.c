@@ -350,6 +350,18 @@ Value *eval_variable(struct Expr *expr, Environment *env, struct Stmt *stmt) {
 // STMT for variable declaration will be handled in the execute function when we execute a variable declaration statement. We will evaluate the initializer expression and then set the variable in the environment with its initial value.
 
 Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
+    const char *name = stmt->variable_declaration_stmt.variable->name;
+
+    // check if variable already declared in THIS scope (not parent)
+    for (int i = 0; i < env->count; i++) {
+        if (strcmp(env->entries[i].name, name) == 0) {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Variable '%s' is already declared in this scope.", name);
+            runtime_error(stmt->variable_declaration_stmt.variable->name_token, msg, NULL);
+            return NULL;
+        }
+    }
+    
     Value *init_value = (Value *)evaluate(stmt->variable_declaration_stmt.variable->value, env, stmt);
     if (!init_value) {
         runtime_error(stmt->variable_declaration_stmt.variable->name_token, "Failed to initialize variable '%s'.", stmt->variable_declaration_stmt.variable->name);
@@ -388,7 +400,7 @@ Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
             return NULL;
         }
     }
-    env_set_variable(env, stmt->variable_declaration_stmt.variable->name, *init_value);
+    env_set_variable(env, stmt->variable_declaration_stmt.variable->name, stmt->variable_declaration_stmt.variable->is_mutable, *init_value);
     free(init_value); // Free the temporary value after setting it in the environment
     return NULL;
 }
@@ -439,8 +451,8 @@ void *execute(Stmt *stmt, Environment *env) {
         case STMT_VARIABLE_DECLARATION: {
             return eval_variable_declaration(stmt, env);
         }
-        case STMT_BLOCK:
-            Environment *block_env = create_environment();
+        case STMT_BLOCK: {
+            Environment *block_env = env_create_child(env);
             for (int i = 0; i < stmt->block_stmt.statement_count; i++) {
                 execute(stmt->block_stmt.statements[i], block_env);
                 if (hadRuntimeError) {
@@ -450,6 +462,7 @@ void *execute(Stmt *stmt, Environment *env) {
             }
             free_environment(block_env);
             return NULL;
+        }
         default:
             runtime_error(stmt->variable_declaration_stmt.variable->name_token, "Execution not implemented for this statement type.", NULL);
             return NULL;

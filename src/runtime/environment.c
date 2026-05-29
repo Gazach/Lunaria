@@ -2,6 +2,7 @@
 #include "runtime.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 // =========================
 // Environment 
 // ========================
@@ -21,10 +22,16 @@ Environment *create_environment() {
 //=================
 
 // Set a variable in the environment with the given name and value. This will be used to create new variable bindings or update existing ones during interpretation.
-void *env_set_variable(Environment *env, const char *name, Value value) {
+void *env_set_variable(Environment *env, const char *name, bool is_mutable, Value value) {
     // Check if the variable already exists in the current environment
     for (int i = 0; i < env->count; i++) {
         if (strcmp(env->entries[i].name, name) == 0) {
+            if (!env->entries[i].is_mutable) {
+                char msg[256];
+                snprintf(msg, sizeof(msg), "Cannot assign to immutable variable '%s'.", name);
+                runtime_error((Token){.line = 0, .literal = name}, msg, NULL);
+                return NULL;
+            }
             env->entries[i].value = value; // Update existing variable
             return NULL;
         }
@@ -35,6 +42,7 @@ void *env_set_variable(Environment *env, const char *name, Value value) {
         env->entries = realloc(env->entries, newCapacity * sizeof(Entry));
         env->capacity = newCapacity;
     }
+    env->entries[env->count].is_mutable = is_mutable;
     env->entries[env->count].name = STRDUP(name);
     env->entries[env->count].value = value;
     env->count++;
