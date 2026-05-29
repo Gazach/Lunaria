@@ -455,10 +455,7 @@ void *execute(Stmt *stmt, Environment *env) {
             Environment *block_env = env_create_child(env);
             for (int i = 0; i < stmt->block_stmt.statement_count; i++) {
                 execute(stmt->block_stmt.statements[i], block_env);
-                if (hadRuntimeError) {
-                    free_environment(block_env);
-                    return NULL;
-                }
+                hadRuntimeError = 0;
             }
             free_environment(block_env);
             return NULL;

@@ -33,8 +33,9 @@ void run(const char* source) {
     printf("Interpreting...\n");
     Environment *env = create_environment();
     for (int i = 0; i < statements.count; i++) {
-        hadRuntimeError = 0; // reset between statements
+        
         interpreter(statements.statements[i], env);
+        hadRuntimeError = 0; // reset between statements
     }
     free_environment(env);
 
