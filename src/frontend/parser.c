@@ -33,8 +33,12 @@ Parser *initParser(Token *tokens, int token_count) {
     return parser;
 }
 
+// forward declaration for expression parsing functions
 Expr *expression(Parser *parser); // Forward declaration of the expression parsing function
+
+// forward declaration for statement parsing functions
 Stmt *statement(Parser *parser); // Forward declaration of the statement parsing function
+static Stmt *Declaration(Parser *parser); // Forward declaration of the declaration parsing function
 
 
 //====================================================================================================================================================
@@ -247,6 +251,44 @@ Expr *expression(Parser *parser) {
 // STATEMENT PARSING PART
 //====================================================================================================================================================
 
+// block statement, which is a sequence of statements enclosed in braces.
+Stmt *parse_block(Parser *parser) {
+    if (!match(parser, (TokenType[]){TOKEN_LEFT_BRACE}, 1)) {
+        parseError(parser, "Expected '{' at the beginning of a block.");
+        return NULL;
+    }
+
+    Stmt **statements = NULL;
+    int statement_count = 0;
+    int statement_capacity = 0;
+
+    while (!check(parser, TOKEN_RIGHT_BRACE) && !isAtEnd(parser)) {
+        Stmt *stmt = Declaration(parser);
+        if (stmt != NULL) {
+            if (statement_count >= statement_capacity) {
+                int newCapacity = statement_capacity == 0 ? 8 : statement_capacity * 2;
+                statements = realloc(statements, newCapacity * sizeof(Stmt *));
+                statement_capacity = newCapacity;
+            }
+            statements[statement_count++] = stmt;
+        } else {
+            synchronize(parser);
+        }
+    }
+
+    if (!match(parser, (TokenType[]){TOKEN_RIGHT_BRACE}, 1)) {
+        parseError(parser, "Expected '}' at the end of a block.");
+        // Free any statements that were parsed before the error
+        for (int i = 0; i < statement_count; i++) {
+            stmt_free(statements[i]);
+        }
+        free(statements);
+        return NULL;
+    }
+
+    return stmt_block(statements, statement_count);
+}
+
 
 // variable declaration statement.
 Stmt *var_Declaration(Parser *parser) {
@@ -335,18 +377,24 @@ Stmt *Declaration(Parser *parser){
     // check if the current token is 'let' or 'const' for variable declaration, and then check if the next token is an identifier for the variable name, and then check if the next token is '=' for variable initialization. If any of these checks fail, we report a parsing error with an appropriate message.
     if (match(parser, (TokenType[]){TOKEN_LET, TOKEN_CONST}, 2)) {
         return var_Declaration(parser);
-    } else {
+    } else if (check(parser, TOKEN_LEFT_BRACE)) {
+        return parse_block(parser);
+    }
+    else {
         parseError(parser, "Expected declaration.");
         synchronize(parser);
         return NULL;
     }
 }
 
+
 // Parse a statement, which can be an expression statement or other types of statements (if, while, etc.). For now, we just parse an expression statement.
 Stmt *statement(Parser *parser) {
     // its do nothing helpful for now but we will use it later for parsing statements like if, while, etc.
     return stmt_expr(expression(parser));
 }
+
+// parse block statememt.
 
 //=================================
 // we parse everything in the main parse function, which is the entry point for the parser. It will call the appropriate parsing functions based on the current token and build the AST accordingly.

@@ -439,6 +439,17 @@ void *execute(Stmt *stmt, Environment *env) {
         case STMT_VARIABLE_DECLARATION: {
             return eval_variable_declaration(stmt, env);
         }
+        case STMT_BLOCK:
+            Environment *block_env = create_environment();
+            for (int i = 0; i < stmt->block_stmt.statement_count; i++) {
+                execute(stmt->block_stmt.statements[i], block_env);
+                if (hadRuntimeError) {
+                    free_environment(block_env);
+                    return NULL;
+                }
+            }
+            free_environment(block_env);
+            return NULL;
         default:
             runtime_error(stmt->variable_declaration_stmt.variable->name_token, "Execution not implemented for this statement type.", NULL);
             return NULL;

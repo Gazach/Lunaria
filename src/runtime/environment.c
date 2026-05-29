@@ -16,6 +16,10 @@ Environment *create_environment() {
     return env;
 }
 
+//=================
+// variable environment management
+//=================
+
 // Set a variable in the environment with the given name and value. This will be used to create new variable bindings or update existing ones during interpretation.
 void *env_set_variable(Environment *env, const char *name, Value value) {
     // Check if the variable already exists in the current environment
@@ -50,12 +54,30 @@ Value *env_get_variable(Environment *env, const char *name) {
     return NULL; // Variable not found
 }
 
+//=================
+// Scope management
+//=================
+
+// simply create a new environment with the current environment as its parent.
+Environment *env_create_child(Environment *parent) {
+    Environment *child = create_environment();
+    child->parent = parent;
+    return child;
+}
+
+//=================
+// Freeing environment
+//=================
+
 // Free the memory used by the environment and its entries. This should be called when the environment is no longer needed to avoid memory leaks.
 void free_environment(Environment *env) {
     for (int i = 0; i < env->count; i++) {
         free(env->entries[i].name); // Free variable names
         if (env->entries[i].value.type == TYPE_STRING) {
             free((char *)env->entries[i].value.as.string); // Free string values
+        }
+        if (env->entries[i].value.type == TYPE_VOID) {
+            free(env->entries[i].value.as.void_value); // Free void pointer values if needed
         }
     }
     free(env->entries); // Free entries array

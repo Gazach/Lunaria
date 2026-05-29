@@ -1,0 +1,8 @@
+// Testing scope
+{
+    let x = "hello";
+    {
+        let z:int = 798342;
+    }
+}
+let y = 2;
