@@ -4,7 +4,7 @@
 #include "../../common/token.h"
 #include "stdbool.h"
 #include "../../common/tokenType.h"
-#include "../../common/type.h"
+#include "../../common/value.h"
 
 typedef struct Expr Expr;
 
@@ -33,7 +33,7 @@ struct Expr { // define the structure of an expression
         } literal;
         struct {
             char *name;
-            Type type;
+            LunarisType type;
             Token name_token; // Store the token for better error reporting
         } variable;
         struct {
@@ -53,7 +53,7 @@ struct Expr { // define the structure of an expression
         } unary;
         struct {
             char *name;
-            Type return_type;
+            LunarisType return_type;
             struct Expr **args;
             int arg_count;
         } call;
@@ -80,10 +80,10 @@ struct Expr { // define the structure of an expression
 void expr_free(struct Expr *expr);
 
 struct Expr *expr_literal(double value, TokenType type);
-struct Expr *expr_variable(char *name, Type type);
+struct Expr *expr_variable(char *name, LunarisType type);
 struct Expr *expr_binary(TokenType op, struct Expr *left, struct Expr *right);
 struct Expr *expr_unary(TokenType op, struct Expr *operand);
-struct Expr *expr_call(char *name, Type return_type, struct Expr **args, int arg_count);
+struct Expr *expr_call(char *name, LunarisType return_type, struct Expr **args, int arg_count);
 struct Expr *expr_grouping(struct Expr *expression);
 struct Expr *expr_index(struct Expr *array, struct Expr *index);
 struct Expr *expr_member_access(struct Expr *object, char *member);

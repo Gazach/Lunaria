@@ -27,7 +27,7 @@ struct Expr *expr_string(const char *value) {
 }
 
 // Create a new variable expression with the given name and type.
-struct Expr *expr_variable(char *name, Type type) {
+struct Expr *expr_variable(char *name, LunarisType type) {
     struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_VARIABLE;
     e->variable.name    = name;
@@ -55,7 +55,7 @@ struct Expr *expr_unary(TokenType op, struct Expr *operand) {
 }
 
 // Create a new function call expression with the given name and arguments.
-struct Expr *expr_call(char *name, Type return_type, struct Expr **args, int arg_count) {
+struct Expr *expr_call(char *name, LunarisType return_type, struct Expr **args, int arg_count) {
     struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_CALL;
     e->call.name        = name;

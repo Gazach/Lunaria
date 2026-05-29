@@ -17,4 +17,11 @@ struct Environment{
     struct Environment *parent; // Pointer to the parent environment for nested scopes
 };
 
+// exposed functions for environment management
+Environment *create_environment();
+void *env_set_variable(Environment *env, const char *name, Value value);
+Value *env_get_variable(Environment *env, const char *name);
+void free_environment(Environment *env);
+
+
 #endif // ENVIRONMENT_H

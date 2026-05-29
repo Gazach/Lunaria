@@ -7,7 +7,6 @@
 #include <string.h>
 
 #include "interpreter.h"
-#include "environment.h"
 
 // Forward declaration of the expression evaluation function.
 void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt);
@@ -22,10 +21,10 @@ extern int hadRuntimeError; // Flag to indicate if a runtime error has occurred
 void *eval_literal(struct Expr *expr, Environment *env, struct Stmt *stmt) {
     Value *result = malloc(sizeof(Value));
     if (expr->literal.type == TOKEN_INT) {
-        result->type = VAL_INT;
+        result->type = TYPE_INT;
         result->as.int_value = (int)expr->literal.value;
     } else if (expr->literal.type == TOKEN_FLOAT) {
-        result->type = VAL_FLOAT;
+        result->type = TYPE_FLOAT;
         result->as.float_value = expr->literal.value;
     }
     return result;
@@ -47,7 +46,7 @@ bool checkNumberOperand(Token operator, void *left_value, void *right_value) {
     }
     Value *left = (Value *)left_value;
     Value *right = (Value *)right_value;
-    if ((left->type != VAL_INT && left->type != VAL_FLOAT) || (right->type != VAL_INT && right->type != VAL_FLOAT)) {
+    if ((left->type != TYPE_INT && left->type != TYPE_FLOAT) || (right->type != TYPE_INT && right->type != TYPE_FLOAT)) {
         runtime_error(operator, "Operand is not a number.", NULL);
         hadRuntimeError = 1;
         return false;
@@ -59,13 +58,13 @@ bool checkNumberOperand(Token operator, void *left_value, void *right_value) {
 bool is_truthy(Value *value) {
     if (value == NULL) return false;
     switch (value->type) {
-        case VAL_INT:
+        case TYPE_INT:
             return value->as.int_value != 0;
-        case VAL_FLOAT:
+        case TYPE_FLOAT:
             return value->as.float_value != 0.0;
-        case VAL_BOOLEAN:
+        case TYPE_BOOLEAN:
             return value->as.boolean;
-        case VAL_NULL:
+        case TYPE_NULL:
             return false;
         default:
             return false;
@@ -74,11 +73,11 @@ bool is_truthy(Value *value) {
 
 Value *eval_unary_minus(Value *operand_value) {
     Value *result = malloc(sizeof(Value));
-    if (operand_value->type == VAL_INT) {
-        result->type = VAL_INT;
+    if (operand_value->type == TYPE_INT) {
+        result->type = TYPE_INT;
         result->as.int_value = -((Value *)operand_value)->as.int_value;
-    } else if (operand_value->type == VAL_FLOAT) {
-        result->type = VAL_FLOAT;
+    } else if (operand_value->type == TYPE_FLOAT) {
+        result->type = TYPE_FLOAT;
         result->as.float_value = -((Value *)operand_value)->as.float_value;
     }
     return result;
@@ -87,7 +86,7 @@ Value *eval_unary_minus(Value *operand_value) {
 // Evaluate a logical NOT expression by evaluating its operand and applying the logical NOT operator to it.
 Value *eval_logical_not(Value *operand_value) {
     Value *result = malloc(sizeof(Value));
-    result->type = VAL_BOOLEAN;
+    result->type = TYPE_BOOLEAN;
     result->as.boolean = !is_truthy(operand_value);
     return result;
 }
@@ -122,13 +121,13 @@ bool is_equal(Value *a, Value *b) {
     if (a == NULL || b == NULL) return false;
     if (a->type != b->type) return false;
     switch (a->type) {
-        case VAL_INT:
+        case TYPE_INT:
             return a->as.int_value == b->as.int_value;
-        case VAL_FLOAT:
+        case TYPE_FLOAT:
             return a->as.float_value == b->as.float_value;
-        case VAL_BOOLEAN:
+        case TYPE_BOOLEAN:
             return a->as.boolean == b->as.boolean;
-        case VAL_NULL:
+        case TYPE_NULL:
             return true;
         default:
             return false;
@@ -153,101 +152,101 @@ void *eval_binary(struct Expr *expr, Environment *env, struct Stmt *stmt) {
     switch (expr->binary.op) {
         case TOKEN_PLUS: {
             Value *result = malloc(sizeof(Value));
-            if (left_value->type == VAL_INT && right_value->type == VAL_INT) {
-                result->type = VAL_INT;
+            if (left_value->type == TYPE_INT && right_value->type == TYPE_INT) {
+                result->type = TYPE_INT;
                 result->as.int_value = left_value->as.int_value + right_value->as.int_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_FLOAT) {
-                result->type = VAL_FLOAT;
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_FLOAT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = left_value->as.float_value + right_value->as.float_value;
-            } else if (left_value->type == VAL_INT && right_value->type == VAL_FLOAT) {
-                result->type = VAL_FLOAT;
+            } else if (left_value->type == TYPE_INT && right_value->type == TYPE_FLOAT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = (float)left_value->as.int_value + right_value->as.float_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_INT) {
-                result->type = VAL_FLOAT;
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_INT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = left_value->as.float_value + (float)right_value->as.int_value;
             }
             return result;
         }
         case TOKEN_MINUS: {
             Value *result = malloc(sizeof(Value));
-            if (left_value->type == VAL_INT && right_value->type == VAL_INT) {
-                result->type = VAL_INT;
+            if (left_value->type == TYPE_INT && right_value->type == TYPE_INT) {
+                result->type = TYPE_INT;
                 result->as.int_value = left_value->as.int_value - right_value->as.int_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_FLOAT) {
-                result->type = VAL_FLOAT;
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_FLOAT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = left_value->as.float_value - right_value->as.float_value;
-            } else if (left_value->type == VAL_INT && right_value->type == VAL_FLOAT) {
-                result->type = VAL_FLOAT;
+            } else if (left_value->type == TYPE_INT && right_value->type == TYPE_FLOAT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = (float)left_value->as.int_value - right_value->as.float_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_INT) {
-                result->type = VAL_FLOAT;
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_INT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = left_value->as.float_value - (float)right_value->as.int_value;
             }
             return result;
         }
         case TOKEN_STAR: {
             Value *result = malloc(sizeof(Value));
-            if (left_value->type == VAL_INT && right_value->type == VAL_INT) {
-                result->type = VAL_INT;
+            if (left_value->type == TYPE_INT && right_value->type == TYPE_INT) {
+                result->type = TYPE_INT;
                 result->as.int_value = left_value->as.int_value * right_value->as.int_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_FLOAT) {
-                result->type = VAL_FLOAT;
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_FLOAT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = left_value->as.float_value * right_value->as.float_value;
-            } else if (left_value->type == VAL_INT && right_value->type == VAL_FLOAT) {
-                result->type = VAL_FLOAT;
+            } else if (left_value->type == TYPE_INT && right_value->type == TYPE_FLOAT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = (float)left_value->as.int_value * right_value->as.float_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_INT) {
-                result->type = VAL_FLOAT;
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_INT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = left_value->as.float_value * (float)right_value->as.int_value;
             }
             return result;
         }
         case TOKEN_SLASH: {
             // Division by zero check for both int and float
-            if ((right_value->type == VAL_INT && right_value->as.int_value == 0) ||
-                (right_value->type == VAL_FLOAT && right_value->as.float_value == 0.0f)) {
+            if ((right_value->type == TYPE_INT && right_value->as.int_value == 0) ||
+                (right_value->type == TYPE_FLOAT && right_value->as.float_value == 0.0f)) {
                 runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Division by zero.", NULL);
                 return NULL;
             }
             Value *result = malloc(sizeof(Value));
-            if (left_value->type == VAL_INT && right_value->type == VAL_INT) {
-                result->type = VAL_FLOAT;
+            if (left_value->type == TYPE_INT && right_value->type == TYPE_INT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = (float)left_value->as.int_value / (float)right_value->as.int_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_FLOAT) {
-                result->type = VAL_FLOAT;
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_FLOAT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = left_value->as.float_value / right_value->as.float_value;
-            } else if (left_value->type == VAL_INT && right_value->type == VAL_FLOAT) {
-                result->type = VAL_FLOAT;
+            } else if (left_value->type == TYPE_INT && right_value->type == TYPE_FLOAT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = (float)left_value->as.int_value / right_value->as.float_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_INT) {
-                result->type = VAL_FLOAT;
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_INT) {
+                result->type = TYPE_FLOAT;
                 result->as.float_value = left_value->as.float_value / (float)right_value->as.int_value;
             }
             return result;
         }
         case TOKEN_EQUAL_EQUAL: {
             Value *result = malloc(sizeof(Value));
-            result->type = VAL_BOOLEAN;
+            result->type = TYPE_BOOLEAN;
             result->as.boolean = is_equal(left_value, right_value);
             return result;
         }
         case TOKEN_NOT_EQUAL: {
             Value *result = malloc(sizeof(Value));
-            result->type = VAL_BOOLEAN;
+            result->type = TYPE_BOOLEAN;
             result->as.boolean = !is_equal(left_value, right_value);
             return result;
         }
         case TOKEN_LESS: {
             Value *result = malloc(sizeof(Value));
             checkNumberOperand((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, left_value, right_value);
-            result->type = VAL_BOOLEAN;
-            if (left_value->type == VAL_INT && right_value->type == VAL_INT) {
+            result->type = TYPE_BOOLEAN;
+            if (left_value->type == TYPE_INT && right_value->type == TYPE_INT) {
                 result->as.boolean = left_value->as.int_value < right_value->as.int_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_FLOAT) {
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_FLOAT) {
                 result->as.boolean = left_value->as.float_value < right_value->as.float_value;
-            } else if (left_value->type == VAL_INT && right_value->type == VAL_FLOAT) {
+            } else if (left_value->type == TYPE_INT && right_value->type == TYPE_FLOAT) {
                 result->as.boolean = (float)left_value->as.int_value < right_value->as.float_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_INT) {
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_INT) {
                 result->as.boolean = left_value->as.float_value < (float)right_value->as.int_value;
             }
             return result;
@@ -255,14 +254,14 @@ void *eval_binary(struct Expr *expr, Environment *env, struct Stmt *stmt) {
         case TOKEN_LESS_EQUAL: {
             Value *result = malloc(sizeof(Value));
             checkNumberOperand((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, left_value, right_value);
-            result->type = VAL_BOOLEAN;
-            if (left_value->type == VAL_INT && right_value->type == VAL_INT) {
+            result->type = TYPE_BOOLEAN;
+            if (left_value->type == TYPE_INT && right_value->type == TYPE_INT) {
                 result->as.boolean = left_value->as.int_value <= right_value->as.int_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_FLOAT) {
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_FLOAT) {
                 result->as.boolean = left_value->as.float_value <= right_value->as.float_value;
-            } else if (left_value->type == VAL_INT && right_value->type == VAL_FLOAT) {
+            } else if (left_value->type == TYPE_INT && right_value->type == TYPE_FLOAT) {
                 result->as.boolean = (float)left_value->as.int_value <= right_value->as.float_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_INT) {
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_INT) {
                 result->as.boolean = left_value->as.float_value <= (float)right_value->as.int_value;
             }
             return result;
@@ -270,14 +269,14 @@ void *eval_binary(struct Expr *expr, Environment *env, struct Stmt *stmt) {
         case TOKEN_GREATER: {
             Value *result = malloc(sizeof(Value));
             checkNumberOperand((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, left_value, right_value);
-            result->type = VAL_BOOLEAN;
-            if (left_value->type == VAL_INT && right_value->type == VAL_INT) {
+            result->type = TYPE_BOOLEAN;
+            if (left_value->type == TYPE_INT && right_value->type == TYPE_INT) {
                 result->as.boolean = left_value->as.int_value > right_value->as.int_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_FLOAT) {
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_FLOAT) {
                 result->as.boolean = left_value->as.float_value > right_value->as.float_value;
-            } else if (left_value->type == VAL_INT && right_value->type == VAL_FLOAT) {
+            } else if (left_value->type == TYPE_INT && right_value->type == TYPE_FLOAT) {
                 result->as.boolean = (float)left_value->as.int_value > right_value->as.float_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_INT) {
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_INT) {
                 result->as.boolean = left_value->as.float_value > (float)right_value->as.int_value;
             }
             return result;
@@ -285,14 +284,14 @@ void *eval_binary(struct Expr *expr, Environment *env, struct Stmt *stmt) {
         case TOKEN_GREATER_EQUAL: {
             Value *result = malloc(sizeof(Value));
             checkNumberOperand((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, left_value, right_value);
-            result->type = VAL_BOOLEAN;
-            if (left_value->type == VAL_INT && right_value->type == VAL_INT) {
+            result->type = TYPE_BOOLEAN;
+            if (left_value->type == TYPE_INT && right_value->type == TYPE_INT) {
                 result->as.boolean = left_value->as.int_value >= right_value->as.int_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_FLOAT) {
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_FLOAT) {
                 result->as.boolean = left_value->as.float_value >= right_value->as.float_value;
-            } else if (left_value->type == VAL_INT && right_value->type == VAL_FLOAT) {
+            } else if (left_value->type == TYPE_INT && right_value->type == TYPE_FLOAT) {
                 result->as.boolean = (float)left_value->as.int_value >= right_value->as.float_value;
-            } else if (left_value->type == VAL_FLOAT && right_value->type == VAL_INT) {
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_INT) {
                 result->as.boolean = left_value->as.float_value >= (float)right_value->as.int_value;
             }
             return result;
@@ -317,85 +316,25 @@ void *eval_grouping(struct Expr *expr, Environment *env, struct Stmt *stmt) {
 char *stringifyValue(Value *value) {
     if (!value) return STRDUP("<null>");
     switch (value->type) {
-        case VAL_INT: {
+        case TYPE_INT: {
             char buffer[64];
             snprintf(buffer, sizeof(buffer), "%d", value->as.int_value);
             return STRDUP(buffer);
         }
-        case VAL_FLOAT: {
+        case TYPE_FLOAT: {
             char buffer[64];
             snprintf(buffer, sizeof(buffer), "%g", value->as.float_value);
             return STRDUP(buffer);
         }
-        case VAL_BOOLEAN:
+        case TYPE_BOOLEAN:
             return STRDUP(value->as.boolean ? "true" : "false");
-        case VAL_STRING:
+        case TYPE_STRING:
             return STRDUP(value->as.string ? value->as.string : "");
-        case VAL_NULL:
+        case TYPE_NULL:
             return STRDUP("null");
         default:
             return STRDUP("<unknown>");
     }
-}
-
-// =========================
-// Environment and variable handling functions will go here
-// ========================
-
-// Initialize a new environment for variable storage and scope management. This will be used to store variable bindings and manage scopes during interpretation.
-Environment *create_environment() {
-    Environment *env = malloc(sizeof(Environment));
-    env->entries = NULL;
-    env->count = 0;
-    env->capacity = 0;
-    env->parent = NULL; // For global environment, parent is NULL
-    return env;
-}
-
-// Set a variable in the environment with the given name and value. This will be used to create new variable bindings or update existing ones during interpretation.
-void *env_set_variable(Environment *env, const char *name, Value value) {
-    // Check if the variable already exists in the current environment
-    for (int i = 0; i < env->count; i++) {
-        if (strcmp(env->entries[i].name, name) == 0) {
-            env->entries[i].value = value; // Update existing variable
-            return NULL;
-        }
-    }
-    // If not found, add a new entry
-    if (env->count >= env->capacity) {
-        int newCapacity = env->capacity == 0 ? 8 : env->capacity * 2;
-        env->entries = realloc(env->entries, newCapacity * sizeof(Entry));
-        env->capacity = newCapacity;
-    }
-    env->entries[env->count].name = STRDUP(name);
-    env->entries[env->count].value = value;
-    env->count++;
-    return NULL;
-}
-
-// Get the value of a variable from the environment by its name. This will be used to retrieve variable values during interpretation.
-Value *env_get_variable(Environment *env, const char *name) {
-    for (int i = 0; i < env->count; i++) {
-        if (strcmp(env->entries[i].name, name) == 0) {
-            return &env->entries[i].value; // Return pointer to the variable's value
-        }
-    }
-    if (env->parent != NULL) {
-        return env_get_variable(env->parent, name); // Look in parent environment
-    }
-    return NULL; // Variable not found
-}
-
-// Free the memory used by the environment and its entries. This should be called when the environment is no longer needed to avoid memory leaks.
-void free_environment(Environment *env) {
-    for (int i = 0; i < env->count; i++) {
-        free(env->entries[i].name); // Free variable names
-        if (env->entries[i].value.type == VAL_STRING) {
-            free((char *)env->entries[i].value.as.string); // Free string values
-        }
-    }
-    free(env->entries); // Free entries array
-    free(env); // Free the environment itself
 }
 
 // Evaluate a variable expression by looking up its value in the environment. This will be used to retrieve the value of variables during interpretation.
@@ -422,22 +361,22 @@ Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
         bool type_ok = false;
         switch (var_type) {
             case TOKEN_TYPE_BOOL:
-                type_ok = init_value->type == VAL_BOOLEAN;
+                type_ok = init_value->type == TYPE_BOOLEAN;
                 break;
             case TOKEN_TYPE_INT:
-                type_ok = init_value->type == VAL_INT;
+                type_ok = init_value->type == TYPE_INT;
                 break;
             case TOKEN_TYPE_FLOAT:
-                type_ok = init_value->type == VAL_FLOAT || init_value->type == VAL_INT; // Allow implicit int to float conversion
+                type_ok = init_value->type == TYPE_FLOAT || init_value->type == TYPE_INT; // Allow implicit int to float conversion
                 break;
             case TOKEN_TYPE_CHAR:
-                type_ok = init_value->type == VAL_STRING && strlen(init_value->as.string) == 1; // A char is a string of length 1
+                type_ok = init_value->type == TYPE_STRING && strlen(init_value->as.string) == 1; // A char is a string of length 1
                 break;
             case TOKEN_TYPE_STRING:
-                type_ok = init_value->type == VAL_STRING;
+                type_ok = init_value->type == TYPE_STRING;
                 break;
             case TOKEN_TYPE_VOID:
-                type_ok = init_value->type == VAL_NULL;
+                type_ok = init_value->type == TYPE_NULL;
                 break;
             default:
                 break;
@@ -474,13 +413,13 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             return eval_variable(expr, env, stmt);
         case EXPR_STRING: {
             Value *result = malloc(sizeof(Value));
-            result->type = VAL_STRING;
+            result->type = TYPE_STRING;
             result->as.string = STRDUP(expr->string.value);
             return result;
         }
         case EXPR_BOOLEAN: {
             Value *result = malloc(sizeof(Value));
-            result->type = VAL_BOOLEAN;
+            result->type = TYPE_BOOLEAN;
             result->as.boolean = expr->boolean.value;
             return result;
         }

@@ -5,20 +5,24 @@
 #include <stdbool.h>
 
 typedef enum {
-    VAL_INT,
-    VAL_FLOAT,
-    VAL_STRING,
-    VAL_BOOLEAN,
-    VAL_NULL,
-} ValueType;
+    TYPE_INT,
+    TYPE_STRING,
+    TYPE_BOOLEAN,
+    TYPE_FLOAT,
+    TYPE_CHARACTER,
+    TYPE_VOID,
+    TYPE_NULL,
+} LunarisType;
 
 typedef struct {
-    ValueType type;
+    LunarisType type;
     union {
         int int_value;
         double float_value;
         const char *string;
         bool boolean;
+        char character;
+        void *void_value;
     } as;
 } Value;
 
