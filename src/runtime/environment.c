@@ -52,6 +52,8 @@ void *env_set_variable(Environment *env, const char *name, bool is_mutable, Valu
     return NULL;
 }
 
+
+
 // Get the value of a variable from the environment by its name. This will be used to retrieve variable values during interpretation.
 Value *env_get_variable(Environment *env, const char *name) {
     // printf("env_get: looking for '%s' env=%p parent=%p\n", name, (void*)env, (void*)env->parent);
@@ -65,6 +67,33 @@ Value *env_get_variable(Environment *env, const char *name) {
         return env_get_variable(env->parent, name);
     }
     return NULL;
+}
+
+// Update the value of an existing variable in the environment. This will be used to update variable values during interpretation, such as in assignment statements.
+void env_update_variable(Environment *env, const char *name, Value value) {
+    for (int i = 0; i < env->count; i++) {
+        if (strcmp(env->entries[i].name, name) == 0) {
+            if (!env->entries[i].is_mutable) {
+                char msg[256];
+                snprintf(msg, sizeof(msg), "Cannot assign to immutable variable '%s'.", name);
+                runtime_error((Token){.line = 0, .literal = name}, msg, NULL);
+                return;
+            }
+            // free old string if needed
+            if (env->entries[i].value.type == TYPE_STRING) {
+                free((char *)env->entries[i].value.as.string);
+            }
+            env->entries[i].value = value;
+            if (value.type == TYPE_STRING && value.as.string != NULL) {
+                env->entries[i].value.as.string = STRDUP(value.as.string);
+            }
+            return;
+        }
+    }
+    // not found in current scope, check parent
+    if (env->parent != NULL) {
+        env_update_variable(env->parent, name, value);
+    }
 }
 
 //=================

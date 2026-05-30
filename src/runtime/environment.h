@@ -23,6 +23,7 @@ struct Environment{
 Environment *create_environment();
 void *env_set_variable(Environment *env, const char *name, bool is_mutable, Value value);
 Value *env_get_variable(Environment *env, const char *name);
+void env_update_variable(Environment *env, const char *name, Value value);
 void free_environment(Environment *env);
 
 

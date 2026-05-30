@@ -140,6 +140,11 @@ void synchronize(Parser *parser) {
     }
 }
 
+// Check if the next token matches the given type without advancing the parser.
+bool check_next(Parser *parser, TokenType type) {
+    if (parser->current + 1 >= parser->token_count) return false;
+    return parser->data[parser->current + 1].type == type;
+}
 
 // ========================
 // Main Parser functions
@@ -538,15 +543,38 @@ Stmt *parse_if(Parser *parser) {
     return stmt_if(condition, then_branch, else_branch, elif_conditions, elif_branches, elif_count);
 }
 
+Stmt *parse_assignment(Parser *parser) {
+    if (!match(parser, (TokenType[]){TOKEN_IDENTIFIER}, 1)) {
+        parseError(parser, "Expected variable name.");
+        return NULL;
+    }
+    Token name_token = *previous(parser);
+    char *name = STRDUP(name_token.literal);
+
+    match(parser, (TokenType[]){TOKEN_EQUAL}, 1); // consume =
+
+    Expr *value = expression(parser);
+
+    if (!match(parser, (TokenType[]){TOKEN_SEMICOLON}, 1)) {
+        parseError(parser, "Expected ';' after assignment.");
+        free(name);
+        return NULL;
+    }
+    return stmt_assign(name, name_token, value);
+}
+
+
 // Parse a declaration, which can be a variable declaration, function declaration, or other types of declarations (class, import, etc.). For now, we just parse variable declarations and function declarations.
 Stmt *Declaration(Parser *parser){
     // check if the current token is 'let' or 'const' for variable declaration, and then check if the next token is an identifier for the variable name, and then check if the next token is '=' for variable initialization. If any of these checks fail, we report a parsing error with an appropriate message.
     if (match(parser, (TokenType[]){TOKEN_LET, TOKEN_CONST}, 2)) {
         return var_Declaration(parser);
+    }  else if (check(parser, TOKEN_IDENTIFIER) && check_next(parser, TOKEN_EQUAL)) {
+        return parse_assignment(parser);
     } else if (check(parser, TOKEN_LEFT_BRACE)) {
         return parse_block(parser);
     } else if (check(parser, TOKEN_FUNCTION)) {
-    return parse_FunctionDeclaration(parser);
+        return parse_FunctionDeclaration(parser);
     } else if (check(parser, TOKEN_RETURN)) {
         return parse_return(parser);
     } else if (check(parser, TOKEN_IF)) {

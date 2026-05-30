@@ -53,6 +53,7 @@ struct Stmt { // define the structure of a statement
         } expr_stmt;
         struct {
             char *name;
+            Token name_token;
             Expr *value;
         } assign_stmt;
     struct {
@@ -146,7 +147,7 @@ typedef struct {
 void stmt_free(struct Stmt *stmt);
 
 struct Stmt *stmt_expr(Expr *expr);
-struct Stmt *stmt_assign(char *name, Expr *value);
+struct Stmt *stmt_assign(char *name, Token name_token, Expr *value);
 struct Stmt *stmt_if(Expr *condition,
                      struct Stmt *then_branch,
                      struct Stmt *else_branch,

@@ -514,6 +514,20 @@ void *execute(Stmt *stmt, Environment *env) {
         case STMT_VARIABLE_DECLARATION: {
             return eval_variable_declaration(stmt, env);
         }
+        case STMT_ASSIGN: {
+            Value *val = (Value *)evaluate(stmt->assign_stmt.value, env, stmt);
+            if (!val) return NULL;
+            
+            Value *existing = env_get_variable(env, stmt->assign_stmt.name);
+            if (!existing) {
+                char msg[256];
+                snprintf(msg, sizeof(msg), "Undefined variable '%s'.", stmt->assign_stmt.name);
+                runtime_error(stmt->assign_stmt.name_token, msg, NULL);
+                return NULL;
+            }
+            env_update_variable(env, stmt->assign_stmt.name, *val);
+            return NULL;
+        }
         case STMT_BLOCK: {
             Environment *block_env = env_create_child(env);
             void *result = NULL;

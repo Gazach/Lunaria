@@ -17,9 +17,10 @@ struct Stmt *stmt_expr(Expr *expr) {
 }
 
 // Create a new assignment statement with the given variable name and value expression.
-struct Stmt *stmt_assign(char *name, Expr *value) {
+struct Stmt *stmt_assign(char *name, Token name_token, Expr *value) {
     struct Stmt *s = stmt_new(STMT_ASSIGN);
     s->assign_stmt.name     = name;
+    s->assign_stmt.name_token = name_token;
     s->assign_stmt.value    = value;
     return s;
 }
