@@ -20,6 +20,7 @@ typedef enum { //define expression types
     EXPR_INDEX, // New expression type for indexing which arrays and lists like arr[0]
     EXPR_MEMBER_ACCESS, // New expression type for member access like obj.field
     EXPR_TERNARY, // New expression type for ternary operator like condition ? expr1 : expr2
+    EXPR_ASSIGN, // New expression type for assignment like a = b
 } ExprType;
 
 struct Expr { // define the structure of an expression
@@ -62,6 +63,11 @@ struct Expr { // define the structure of an expression
             struct Expr *expression;
         } grouping;
         struct {
+            char *name;
+            Token name_token;
+            struct Expr *value;
+        } assign;
+        struct {
             struct Expr *array;
             struct Expr *index;
         } index;
@@ -86,6 +92,7 @@ struct Expr *expr_binary(TokenType op, struct Expr *left, struct Expr *right);
 struct Expr *expr_unary(TokenType op, struct Expr *operand);
 struct Expr *expr_call(char *name, LunarisType return_type, struct Expr **args, int arg_count);
 struct Expr *expr_grouping(struct Expr *expression);
+struct Expr *expr_assign(char *name, Token name_token, struct Expr *value);
 struct Expr *expr_index(struct Expr *array, struct Expr *index);
 struct Expr *expr_member_access(struct Expr *object, char *member);
 struct Expr *expr_ternary(struct Expr *condition, struct Expr *then_branch, struct Expr *else_branch);

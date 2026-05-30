@@ -1,0 +1,48 @@
+// test 1. correct
+for (let i = 0; i < 5; i = i + 1) {
+    print(i);
+}
+
+print("============");
+
+// test 2. correct
+
+fn sum(n) {
+    let mut result = 0;
+    for (let i = 1; i < n; i = i + 1) {
+        result = result + i;
+    }
+    return result;
+}
+print(sum(10));
+
+print("============");
+
+// test 3. correct.
+fn fizzbuzz(n) {
+    let mut i = 1;
+    for (let i = 1; i < n; i = i + 1) {
+        if (i == 15) {
+            print("fizzbuzz");
+        } elif (i == 3) {
+            print("fizz");
+        } elif (i == 5) {
+            print("buzz");
+        } else {
+            print(i);
+        }
+    }
+}
+fizzbuzz(20);
+
+print("============");
+
+// test 4. correct
+
+fn factorial(n) {
+    if (n < 2) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+print(factorial(10));

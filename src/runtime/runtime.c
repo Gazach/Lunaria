@@ -429,7 +429,16 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             return eval_grouping(expr, env, stmt);
         case EXPR_VARIABLE:
             return eval_variable(expr, env, stmt);
-            
+        case EXPR_ASSIGN:
+            Value *val = (Value *)evaluate(expr->assign.value, env, stmt);
+            if (!val) return NULL;
+            Value *existing = env_get_variable(env, expr->assign.name);
+            if (!existing) {
+                runtime_error(expr->assign.name_token, "Undefined variable '%s'.", expr->assign.name);
+                return NULL;
+            }
+            env_update_variable(env, expr->assign.name, *val);
+            return val;
         case EXPR_STRING: {
             Value *result = malloc(sizeof(Value));
             result->type = TYPE_STRING;
@@ -578,6 +587,27 @@ void *execute(Stmt *stmt, Environment *env) {
             if (stmt->if_stmt.else_branch != NULL) {
                 return execute(stmt->if_stmt.else_branch, env);
             }
+            return NULL;
+        }
+        case STMT_FOR: {
+            Environment *for_env = env_create_child(env);
+    
+            // initializer — let i = 0
+            if (stmt->for_stmt.initializer) {
+                execute(stmt->for_stmt.initializer, for_env);
+            }
+            // condition — i < 10
+            while (stmt->for_stmt.condition) {
+                Value *cond = (Value *)evaluate(stmt->for_stmt.condition, for_env, stmt);
+                if (!is_truthy(cond)) break;
+                execute(stmt->for_stmt.body, for_env);
+                // increment — i = i + 1
+                if (stmt->for_stmt.increment) {
+                    evaluate(stmt->for_stmt.increment, for_env, stmt);
+                }
+            }
+            
+            free_environment(for_env);
             return NULL;
         }
         default:

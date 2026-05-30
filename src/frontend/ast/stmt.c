@@ -97,12 +97,12 @@ param_types, int param_count, char *return_type, struct Stmt **body, int body_co
 }
 
 // Create a new for statement with the given iterator name, iterable expression, and body.
-struct Stmt *stmt_for(char *iterator_name, Expr *iterable, struct Stmt **body, int body_count) {
+struct Stmt *stmt_for(struct Stmt *initializer, Expr *condition, Expr *increment, struct Stmt *body) {
     struct Stmt *s = stmt_new(STMT_FOR);
-    s->for_stmt.iterator_name = iterator_name;
-    s->for_stmt.iterable = iterable;
+    s->for_stmt.initializer = initializer;
+    s->for_stmt.condition = condition;
+    s->for_stmt.increment = increment;
     s->for_stmt.body = body;
-    s->for_stmt.body_count = body_count;
     return s;
 }
 
@@ -240,12 +240,10 @@ void stmt_free(struct Stmt *stmt) {
             free(stmt->function_declaration_stmt.body);
             break;
         case STMT_FOR:
-            free(stmt->for_stmt.iterator_name);
-            expr_free(stmt->for_stmt.iterable);
-            for (int i = 0; i < stmt->for_stmt.body_count; i++) {
-                stmt_free(stmt->for_stmt.body[i]);
-            }
-            free(stmt->for_stmt.body);
+            free(stmt->for_stmt.initializer);
+            expr_free(stmt->for_stmt.condition);
+            expr_free(stmt->for_stmt.increment);
+            stmt_free(stmt->for_stmt.body);
             break;
         case STMT_BLOCK:
             for (int i = 0; i < stmt->block_stmt.statement_count; i++) {

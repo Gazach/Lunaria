@@ -74,6 +74,15 @@ struct Expr *expr_grouping(struct Expr *expression) {
     return e;
 }
 
+struct Expr *expr_assign(char *name, Token name_token, struct Expr *value) {
+    struct Expr *e      = malloc(sizeof(struct Expr));
+    e->type             = EXPR_ASSIGN;
+    e->assign.name      = name;
+    e->assign.name_token = name_token;
+    e->assign.value     = value;
+    return e;
+}
+
 // Create a new index expression with the given array and index sub-expressions.
 struct Expr *expr_index(struct Expr *array, struct Expr *index) {
     struct Expr *e      = malloc(sizeof(struct Expr));

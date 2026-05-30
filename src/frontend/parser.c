@@ -272,8 +272,16 @@ Expr *equality(Parser *parser) {
     return expr;
 }
 
-// Parse an expression, which is currently just an equality expression.
+
+// Parse an expression, which can be an equality expression followed by an optional assignment operator and another expression.
 Expr *expression(Parser *parser) {
+    if (check(parser, TOKEN_IDENTIFIER) && check_next(parser, TOKEN_EQUAL)) {
+        Token name_token = *peek(parser);
+        advance(parser); // consume identifier
+        advance(parser); // consume =
+        Expr *value = expression(parser);
+        return expr_assign(STRDUP(name_token.literal), name_token, value);
+    }
     return equality(parser);
 }
 
@@ -401,6 +409,27 @@ Stmt *var_Declaration(Parser *parser) {
     }
 
     return stmt_variable_declaration(variable);
+}
+
+// Parse an assignment statement, which consists of an identifier, an equal sign, and an expression.
+Stmt *parse_assignment(Parser *parser) {
+    if (!match(parser, (TokenType[]){TOKEN_IDENTIFIER}, 1)) {
+        parseError(parser, "Expected variable name.");
+        return NULL;
+    }
+    Token name_token = *previous(parser);
+    char *name = STRDUP(name_token.literal);
+
+    match(parser, (TokenType[]){TOKEN_EQUAL}, 1); // consume =
+
+    Expr *value = expression(parser);
+
+    if (!match(parser, (TokenType[]){TOKEN_SEMICOLON}, 1)) {
+        parseError(parser, "Expected ';' after assignment.");
+        free(name);
+        return NULL;
+    }
+    return stmt_assign(name, name_token, value);
 }
 
 // function declaration statement.
@@ -543,26 +572,47 @@ Stmt *parse_if(Parser *parser) {
     return stmt_if(condition, then_branch, else_branch, elif_conditions, elif_branches, elif_count);
 }
 
-Stmt *parse_assignment(Parser *parser) {
-    if (!match(parser, (TokenType[]){TOKEN_IDENTIFIER}, 1)) {
-        parseError(parser, "Expected variable name.");
+// Parse a for statement, which consists of a 'for' keyword, an initializer, a condition, an increment expression, and a body.
+Stmt *parse_for(Parser *parser) {
+    if (!match(parser, (TokenType[]){TOKEN_FOR}, 1)) {
+        parseError(parser, "Expected 'for' as keyword.");
         return NULL;
     }
-    Token name_token = *previous(parser);
-    char *name = STRDUP(name_token.literal);
 
-    match(parser, (TokenType[]){TOKEN_EQUAL}, 1); // consume =
-
-    Expr *value = expression(parser);
-
+    if (!match(parser, (TokenType[]){TOKEN_LEFT_PAREN}, 1)) {
+        parseError(parser, "Expected '(' after 'for'.");
+        return NULL;
+    }
+    
+    Stmt *initializer = NULL;
+    if (!check(parser, TOKEN_SEMICOLON)) {
+        initializer = Declaration(parser);
+    } else {
+        match(parser, (TokenType[]){TOKEN_SEMICOLON}, 1); // consume the semicolon if there's no initializer
+    }
+    Expr *condition = NULL;
+    if (!check(parser, TOKEN_SEMICOLON)) {
+        condition = expression(parser);
+    }
     if (!match(parser, (TokenType[]){TOKEN_SEMICOLON}, 1)) {
-        parseError(parser, "Expected ';' after assignment.");
-        free(name);
+        parseError(parser, "Expected ';' after loop condition.");
         return NULL;
     }
-    return stmt_assign(name, name_token, value);
+    Expr *increment = NULL;
+    if (!check(parser, TOKEN_RIGHT_PAREN)) {
+        increment = expression(parser);
+    }
+    if (!match(parser, (TokenType[]){TOKEN_RIGHT_PAREN}, 1)) {
+        parseError(parser, "Expected ')' after for clauses.");
+        return NULL;
+    }
+    Stmt *body = parse_block(parser);
+    if (!body) {
+        parseError(parser, "Expected block '{' after for clauses.");
+        return NULL;
+    }
+    return stmt_for(initializer, condition, increment, body);
 }
-
 
 // Parse a declaration, which can be a variable declaration, function declaration, or other types of declarations (class, import, etc.). For now, we just parse variable declarations and function declarations.
 Stmt *Declaration(Parser *parser){
@@ -579,6 +629,8 @@ Stmt *Declaration(Parser *parser){
         return parse_return(parser);
     } else if (check(parser, TOKEN_IF)) {
         return parse_if(parser);
+    } else if (check(parser, TOKEN_FOR)) {
+        return parse_for(parser);
     }
     else {
         Expr *expr = expression(parser);

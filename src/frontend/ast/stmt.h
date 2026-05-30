@@ -56,14 +56,14 @@ struct Stmt { // define the structure of a statement
             Token name_token;
             Expr *value;
         } assign_stmt;
-    struct {
-        Expr *condition;
-        struct Stmt *then_branch;    // single block
-        struct Stmt *else_branch;    // single block, NULL if none
-        struct Stmt **elif_branches; // array of blocks
-        Expr **elif_conditions;
-        int elif_count;
-    } if_stmt;
+        struct {
+            Expr *condition;
+            struct Stmt *then_branch;    // single block
+            struct Stmt *else_branch;    // single block, NULL if none
+            struct Stmt **elif_branches; // array of blocks
+            Expr **elif_conditions;
+            int elif_count;
+        } if_stmt;
         struct {
             struct Stmt **statements;
             int statement_count;
@@ -95,10 +95,10 @@ struct Stmt { // define the structure of a statement
             int body_count;
         } function_declaration_stmt;
         struct {
-            char *iterator_name;
-            Expr *iterable;
-            struct Stmt **body;
-            int body_count;
+            struct Stmt *initializer;  // let i = 0
+            Expr *condition;           // i < 10
+            Expr *increment;           // i = i + 1
+            struct Stmt *body;         // the block
         } for_stmt;
         struct {
             struct Stmt **statements;
@@ -160,7 +160,7 @@ struct Stmt *stmt_while(Expr *condition, struct Stmt **body, int body_count);
 struct Stmt *stmt_return(Expr *value);
 struct Stmt *stmt_type_notation(char *type_name, Expr *value);
 struct Stmt *stmt_function_declaration(char *name, char **param_names, char **param_types, int param_count, char *return_type, struct Stmt **body, int body_count);
-struct Stmt *stmt_for(char *iterator_name, Expr *iterable, struct Stmt **body, int body_count);
+struct Stmt *stmt_for(struct Stmt *initializer, Expr *condition, Expr *increment, struct Stmt *body);
 struct Stmt *stmt_block(struct Stmt **statements, int statement_count);
 struct Stmt *stmt_switch(Expr *expression, struct Stmt **cases, int case_count, struct Stmt *default_case);
 struct Stmt *stmt_case(Expr *value, struct Stmt **body, int body_count);

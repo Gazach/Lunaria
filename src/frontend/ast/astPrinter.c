@@ -120,12 +120,15 @@ void print_stmt(const Stmt *stmt, int indent) {
 				print_stmt(stmt->function_declaration_stmt.body[i], indent + 2);
 			break;
 		case STMT_FOR:
-			print_indent(indent); printf("For: %s\n", stmt->for_stmt.iterator_name);
-			print_indent(indent + 1); printf("Iterable:\n");
-			print_expr(stmt->for_stmt.iterable, indent + 2);
+			print_indent(indent); printf("For\n");
+			print_indent(indent + 1); printf("Initializer:\n");
+			print_stmt(stmt->for_stmt.initializer, indent + 2);
+			print_indent(indent + 1); printf("Condition:\n");
+			print_expr(stmt->for_stmt.condition, indent + 2);
+			print_indent(indent + 1); printf("Increment:\n");
+			print_expr(stmt->for_stmt.increment, indent + 2);
 			print_indent(indent + 1); printf("Body:\n");
-			for (int i = 0; i < stmt->for_stmt.body_count; i++)
-				print_stmt(stmt->for_stmt.body[i], indent + 2);
+			print_stmt(stmt->for_stmt.body, indent + 2);
 			break;
 		case STMT_BLOCK:
 			print_indent(indent); printf("Block\n");
