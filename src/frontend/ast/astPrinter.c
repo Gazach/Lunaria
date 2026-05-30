@@ -67,11 +67,17 @@ void print_stmt(const Stmt *stmt, int indent) {
 			print_indent(indent + 1); printf("Condition:\n");
 			print_expr(stmt->if_stmt.condition, indent + 2);
 			print_indent(indent + 1); printf("Then:\n");
-			for (int i = 0; i < stmt->if_stmt.then_count; i++)
-				print_stmt(stmt->if_stmt.then_branch[i], indent + 2);
-			print_indent(indent + 1); printf("Else:\n");
-			for (int i = 0; i < stmt->if_stmt.else_count; i++)
-				print_stmt(stmt->if_stmt.else_branch[i], indent + 2);
+			print_stmt(stmt->if_stmt.then_branch, indent + 2);
+			if (stmt->if_stmt.else_branch) {
+				print_indent(indent + 1); printf("Else:\n");
+				print_stmt(stmt->if_stmt.else_branch, indent + 2);
+			}
+			for (int i = 0; i < stmt->if_stmt.elif_count; i++) {
+				print_indent(indent + 1); printf("Elif Condition:\n");
+				print_expr(stmt->if_stmt.elif_conditions[i], indent + 2);
+				print_indent(indent + 1); printf("Elif Body:\n");
+				print_stmt(stmt->if_stmt.elif_branches[i], indent + 2);
+			}
 			break;
 		case STMT_ELSE:
 			print_indent(indent); printf("Else\n");

@@ -25,14 +25,19 @@ struct Stmt *stmt_assign(char *name, Expr *value) {
 }
 
 // Create a new if statement with the given condition, then-branch, and else-branch.
-struct Stmt *stmt_if(Expr *condition, struct Stmt **then_branch, int
-then_count, struct Stmt **else_branch, int else_count) {
+struct Stmt *stmt_if(Expr *condition,
+                     struct Stmt *then_branch,
+                     struct Stmt *else_branch,
+                     Expr **elif_conditions,
+                     struct Stmt **elif_branches,
+                     int elif_count) {
     struct Stmt *s = stmt_new(STMT_IF);
-    s->if_stmt.condition    = condition;
-    s->if_stmt.then_branch  = then_branch;
-    s->if_stmt.then_count   = then_count;
-    s->if_stmt.else_branch  = else_branch;
-    s->if_stmt.else_count   = else_count;
+    s->if_stmt.condition       = condition;
+    s->if_stmt.then_branch     = then_branch;
+    s->if_stmt.else_branch     = else_branch;
+    s->if_stmt.elif_conditions = elif_conditions;
+    s->if_stmt.elif_branches   = elif_branches;
+    s->if_stmt.elif_count      = elif_count;
     return s;
 }
 
@@ -182,14 +187,14 @@ void stmt_free(struct Stmt *stmt) {
             break;
         case STMT_IF:
             expr_free(stmt->if_stmt.condition);
-            for (int i = 0; i < stmt->if_stmt.then_count; i++) {
-                stmt_free(stmt->if_stmt.then_branch[i]);
+            stmt_free(stmt->if_stmt.then_branch);
+            stmt_free(stmt->if_stmt.else_branch);
+            for (int i = 0; i < stmt->if_stmt.elif_count; i++) {
+                expr_free(stmt->if_stmt.elif_conditions[i]);
+                stmt_free(stmt->if_stmt.elif_branches[i]);
             }
-            free(stmt->if_stmt.then_branch);
-            for (int i = 0; i < stmt->if_stmt.else_count; i++) {
-                stmt_free(stmt->if_stmt.else_branch[i]);
-            }
-            free(stmt->if_stmt.else_branch);
+            free(stmt->if_stmt.elif_conditions);
+            free(stmt->if_stmt.elif_branches);
             break;
         case STMT_ELSE:
             for (int i = 0; i < stmt->else_stmt.statement_count; i++) {

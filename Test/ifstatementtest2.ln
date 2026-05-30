@@ -1,0 +1,15 @@
+fn iftest(a, b, c){   
+    if(1 > a){
+        let text = "cihai";
+    } elif (2 > a){
+        let text = "uwau";
+    } else {
+        let text = "uwu";
+    }
+
+    return text;
+}
+
+let a = iftest(2);
+
+print(a);

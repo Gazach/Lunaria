@@ -26,7 +26,7 @@ void *eval_literal(struct Expr *expr, Environment *env, struct Stmt *stmt) {
         result->as.int_value = (int)expr->literal.value;
     } else if (expr->literal.type == TOKEN_FLOAT) {
         result->type = TYPE_FLOAT;
-        result->as.float_value = expr->literal.value;
+        result->as.float_value = expr->literal.value;   
     }
     return result;
 }
@@ -65,6 +65,8 @@ bool is_truthy(Value *value) {
             return value->as.float_value != 0.0;
         case TYPE_BOOLEAN:
             return value->as.boolean;
+        case TYPE_STRING:
+            return value->as.string != NULL && value->as.string[0] != '\0';
         case TYPE_NULL:
             return false;
         default:
@@ -427,6 +429,7 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             return eval_grouping(expr, env, stmt);
         case EXPR_VARIABLE:
             return eval_variable(expr, env, stmt);
+            
         case EXPR_STRING: {
             Value *result = malloc(sizeof(Value));
             result->type = TYPE_STRING;
@@ -539,11 +542,29 @@ void *execute(Stmt *stmt, Environment *env) {
             if (stmt->return_stmt.value != NULL) {
                 Value *val = (Value *)evaluate(stmt->return_stmt.value, env, stmt);
                 signal->return_value = *val;
-                // DO NOT free(val) here — it points into the environment
+                if (val->type == TYPE_STRING && val->as.string != NULL) {
+                    signal->return_value.as.string = STRDUP(val->as.string);
+                }
             } else {
                 signal->return_value = (Value){ .type = TYPE_NULL };
             }
             return signal;
+        }
+        case STMT_IF: {
+            Value *cond = (Value *)evaluate(stmt->if_stmt.condition, env, stmt);
+            if (is_truthy(cond)) {
+                return execute(stmt->if_stmt.then_branch, env);
+            }
+            for (int i = 0; i < stmt->if_stmt.elif_count; i++) {
+                Value *elif_cond = (Value *)evaluate(stmt->if_stmt.elif_conditions[i], env, stmt);
+                if (is_truthy(elif_cond)) {
+                    return execute(stmt->if_stmt.elif_branches[i], env);
+                }
+            }
+            if (stmt->if_stmt.else_branch != NULL) {
+                return execute(stmt->if_stmt.else_branch, env);
+            }
+            return NULL;
         }
         default:
             runtime_error(stmt->variable_declaration_stmt.variable->name_token, "Execution not implemented for this statement type.", NULL);
@@ -552,7 +573,7 @@ void *execute(Stmt *stmt, Environment *env) {
 }
 
 // Main function to interpret an expression and print its result. This is the entry point for the interpreter.
-void interpreter(struct Stmt *stmt, Environment *env) {
+void runtime(struct Stmt *stmt, Environment *env) {
     void *result = execute(stmt, env);
     if (hadRuntimeError) return;
     if (result) {

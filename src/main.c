@@ -19,21 +19,21 @@ int hadRuntimeError = 0;
 void run(const char* source) {
     hadRuntimeError = 0;
     hadError = 0;
-    //printf("Lexing...\n");
+    printf("Lexing...\n");
     Lexer lexer;
     initLexer(&lexer, source);
     TokenArray tokens = scanTokens(&lexer);
-    //printf("Parsing...\n");
+    printf("Parsing...\n");
     Parser *parser = initParser(tokens.data, tokens.count);
     StmtList statements = parse(parser);
     //printf("Freeing parser...\n");
     freeParser(parser);
     freeTokenArray(&tokens);
 
-    //printf("Interpreting...\n");
+    printf("Interpreting...\n");
     Environment *env = create_environment();
     for (int i = 0; i < statements.count; i++) {
-        interpreter(statements.statements[i], env);
+        runtime(statements.statements[i], env);
         hadRuntimeError = 0;
         //printf("done stmt %d\n", i);  // add this
         //fflush(stdout);

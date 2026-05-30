@@ -475,6 +475,70 @@ Stmt *parse_return(Parser *parser) {
     return stmt_return(value);
 }
 
+// Parse an if statement, which consists of an 'if' keyword
+Stmt *parse_if(Parser *parser) {
+    if (!match(parser, (TokenType[]){TOKEN_IF}, 1)) {
+        parseError(parser, "Expected 'if' as keyword.");
+        return NULL;
+    }
+    if (!match(parser, (TokenType[]){TOKEN_LEFT_PAREN}, 1)) {
+        parseError(parser, "Expected '(' after 'if'.");
+        return NULL;
+    }
+    Expr *condition = expression(parser);
+
+    if (!match(parser, (TokenType[]){TOKEN_RIGHT_PAREN}, 1)) {
+        parseError(parser, "Expected ')' after if condition.");
+        return NULL;
+    }
+    Stmt *then_branch = parse_block(parser);
+
+    if (!then_branch) {
+        parseError(parser, "Expected block '{' after 'if' condition.");
+        return NULL;
+    }
+
+    // elif branches
+    Expr **elif_conditions = NULL;
+    Stmt **elif_branches = NULL;
+    int elif_count = 0;
+
+    while (check(parser, TOKEN_ELIF)) {
+        advance(parser); // consume elif
+        if (!match(parser, (TokenType[]){TOKEN_LEFT_PAREN}, 1)) {
+            parseError(parser, "Expected '(' after 'elif'.");
+            return NULL;
+        }
+        Expr *elif_cond = expression(parser);
+        if (!match(parser, (TokenType[]){TOKEN_RIGHT_PAREN}, 1)) {
+            parseError(parser, "Expected ')' after elif condition.");
+            return NULL;
+        }
+        Stmt *elif_body = parse_block(parser);
+        if (!elif_body) {
+            parseError(parser, "Expected '{' after elif condition.");
+            return NULL;
+        }
+        elif_count++;
+        elif_conditions = realloc(elif_conditions, elif_count * sizeof(Expr *));
+        elif_branches   = realloc(elif_branches,   elif_count * sizeof(Stmt *));
+        elif_conditions[elif_count - 1] = elif_cond;
+        elif_branches[elif_count - 1]   = elif_body;
+    }
+
+    Stmt *else_branch = NULL;
+    if (match(parser, (TokenType[]){TOKEN_ELSE}, 1)) {
+        else_branch = parse_block(parser);
+        if (!else_branch) {
+            parseError(parser, "Expected block '{' after 'else' keyword.");
+            return NULL;
+        }
+    }
+
+    return stmt_if(condition, then_branch, else_branch, elif_conditions, elif_branches, elif_count);
+}
+
+// Parse a declaration, which can be a variable declaration, function declaration, or other types of declarations (class, import, etc.). For now, we just parse variable declarations and function declarations.
 Stmt *Declaration(Parser *parser){
     // check if the current token is 'let' or 'const' for variable declaration, and then check if the next token is an identifier for the variable name, and then check if the next token is '=' for variable initialization. If any of these checks fail, we report a parsing error with an appropriate message.
     if (match(parser, (TokenType[]){TOKEN_LET, TOKEN_CONST}, 2)) {
@@ -485,6 +549,8 @@ Stmt *Declaration(Parser *parser){
     return parse_FunctionDeclaration(parser);
     } else if (check(parser, TOKEN_RETURN)) {
         return parse_return(parser);
+    } else if (check(parser, TOKEN_IF)) {
+        return parse_if(parser);
     }
     else {
         Expr *expr = expression(parser);

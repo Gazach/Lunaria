@@ -45,6 +45,9 @@ void *env_set_variable(Environment *env, const char *name, bool is_mutable, Valu
     env->entries[env->count].is_mutable = is_mutable;
     env->entries[env->count].name = STRDUP(name);
     env->entries[env->count].value = value;
+    if (value.type == TYPE_STRING && value.as.string != NULL) {
+        env->entries[env->count].value.as.string = STRDUP(value.as.string);
+    }
     env->count++;
     return NULL;
 }

@@ -55,13 +55,14 @@ struct Stmt { // define the structure of a statement
             char *name;
             Expr *value;
         } assign_stmt;
-        struct {
-            Expr *condition;
-            struct Stmt **then_branch;
-            int then_count;
-            struct Stmt **else_branch;
-            int else_count;
-        } if_stmt;
+    struct {
+        Expr *condition;
+        struct Stmt *then_branch;    // single block
+        struct Stmt *else_branch;    // single block, NULL if none
+        struct Stmt **elif_branches; // array of blocks
+        Expr **elif_conditions;
+        int elif_count;
+    } if_stmt;
         struct {
             struct Stmt **statements;
             int statement_count;
@@ -146,7 +147,12 @@ void stmt_free(struct Stmt *stmt);
 
 struct Stmt *stmt_expr(Expr *expr);
 struct Stmt *stmt_assign(char *name, Expr *value);
-struct Stmt *stmt_if(Expr *condition, struct Stmt **then_branch, int then_count, struct Stmt **else_branch, int else_count);
+struct Stmt *stmt_if(Expr *condition,
+                     struct Stmt *then_branch,
+                     struct Stmt *else_branch,
+                     Expr **elif_conditions,
+                     struct Stmt **elif_branches,
+                     int elif_count);
 struct Stmt *stmt_else(struct Stmt **statements, int statement_count);
 struct Stmt *stmt_elif(Expr *condition, struct Stmt **body, int body_count);
 struct Stmt *stmt_while(Expr *condition, struct Stmt **body, int body_count);
