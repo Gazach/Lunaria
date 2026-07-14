@@ -1,0 +1,56 @@
+fn sum(start, end) {
+    let mut total = 0;
+
+    for (let mut i = start; i <= end; i = i + 1) {
+
+        // Skip negatives
+        if (i < 0) {
+            continue;
+        }
+
+        // Stop at 8
+        if (i == 8) {
+            break;
+        }
+
+        total = total + i;
+    }
+
+    return total;
+}
+
+fn factorial(n) {
+    let mut result = 1;
+
+    for (let mut i = 1; i <= n; i = i + 1) {
+        result = result * i;
+    }
+
+    return result;
+}
+
+fn nested() {
+    let mut count = 0;
+
+    for (let mut i = 0; i < 3; i = i + 1) {
+        for (let mut j = 0; j < 3; j = j + 1) {
+
+            if (j == 1) {
+                continue;
+            }
+
+            if (i == 2) {
+                break;
+            }
+
+            count = count + 1;
+        }
+    }
+
+    return count;
+}
+
+print(sum(-5, 10));      // 28
+print(factorial(5));     // 120
+print(nested());         // 6
+print(true);

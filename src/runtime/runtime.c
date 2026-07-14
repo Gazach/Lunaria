@@ -342,19 +342,37 @@ char *stringifyValue(Value *value) {
 
 // Evaluate a variable expression by looking up its value in the environment. This will be used to retrieve the value of variables during interpretation.
 Value *eval_variable(struct Expr *expr, Environment *env, struct Stmt *stmt) {
-    Value *value = env_get_variable(env, expr->variable.name);
-    if (value == NULL) {
-        runtime_error(expr->variable.name_token, "Undefined variable '%s'.", expr->variable.name);
+    Value *src = env_get_variable(env, expr->variable.name);
+    if (src == NULL) {
+        runtime_error(expr->variable.name_token,
+                      "Undefined variable '%s'.",
+                      expr->variable.name);
         return NULL;
     }
-    return value;
+
+    Value *copy = malloc(sizeof(Value));
+    *copy = *src;
+
+    // Deep-copy heap-allocated members.
+    if (copy->type == TYPE_STRING && copy->as.string != NULL) {
+        copy->as.string = STRDUP(copy->as.string);
+    }
+
+    return copy;
 }
 
 // STMT for variable declaration will be handled in the execute function when we execute a variable declaration statement. We will evaluate the initializer expression and then set the variable in the environment with its initial value.
 
 Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
+    
     const char *name = stmt->variable_declaration_stmt.variable->name;
-
+    // printf("storing '%s' env=%p env->parent=%p\n", 
+    //     stmt->variable_declaration_stmt.variable->name,
+    //     (void*)env, (void*)env->parent);
+    // fflush(stdout);
+    // printf("declaring '%s' in env=%p\n", 
+    //     stmt->variable_declaration_stmt.variable->name, (void*)env);
+    // fflush(stdout);
     // check if variable already declared in THIS scope (not parent)
     for (int i = 0; i < env->count; i++) {
         if (strcmp(env->entries[i].name, name) == 0) {
@@ -365,9 +383,26 @@ Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
         }
     }
     
-    Value *init_value = (Value *)evaluate(stmt->variable_declaration_stmt.variable->value, env, stmt);
+    Value *init_value = (Value *)evaluate(
+        stmt->variable_declaration_stmt.variable->value,
+        env,
+        stmt
+    );
+
+    // printf("returned from evaluate() init_value=%p\n", (void*)init_value);
+    // fflush(stdout);
+
+    if (init_value != NULL) {
+        // printf("init_value->type = %d\n", init_value->type);
+        // fflush(stdout);
+    }
+
     if (!init_value) {
-        runtime_error(stmt->variable_declaration_stmt.variable->name_token, "Failed to initialize variable '%s'.", stmt->variable_declaration_stmt.variable->name);
+        runtime_error(
+            stmt->variable_declaration_stmt.variable->name_token,
+            "Failed to initialize variable '%s'.",
+            stmt->variable_declaration_stmt.variable->name
+        );
         return NULL;
     }
 
@@ -404,7 +439,7 @@ Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
         }
     }
     env_set_variable(env, stmt->variable_declaration_stmt.variable->name, stmt->variable_declaration_stmt.variable->is_mutable, *init_value);
-    free(init_value); // Free the temporary value after setting it in the environment
+    // free(init_value); // Free the temporary value after setting it in the environment
     return NULL;
 }
 
@@ -417,6 +452,12 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
     // debug
         // printf("evaluate: expr type = %d\n", expr->type);
         // fflush(stdout);
+    if (expr == NULL) {
+        // printf("evaluate: NULL expr!\n"); fflush(stdout);
+        return NULL;
+    }
+    // printf("evaluate: type=%d\n", expr->type); fflush(stdout);
+
     // check the type of the expression and evaluate it accordingly
     switch (expr->type) {
         case EXPR_LITERAL:
@@ -430,6 +471,10 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
         case EXPR_VARIABLE:
             return eval_variable(expr, env, stmt);
         case EXPR_ASSIGN:
+        // if (expr->type == EXPR_ASSIGN) {
+        //     printf("EXPR_ASSIGN: assigning to '%s'\n", expr->assign.name);
+        //     fflush(stdout);
+        // }
             Value *val = (Value *)evaluate(expr->assign.value, env, stmt);
             if (!val) return NULL;
             Value *existing = env_get_variable(env, expr->assign.name);
@@ -452,7 +497,9 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             return result;
         }
         case EXPR_CALL: {
-
+            // printf("EXPR_CALL: calling '%s'\n", expr->call.name);
+            // fflush(stdout);
+            
             if (is_builtin(expr->call.name)) {
                 Value **args = malloc(expr->call.arg_count * sizeof(Value *));
                 for (int i = 0; i < expr->call.arg_count; i++) {
@@ -469,25 +516,43 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
                 return NULL;
             }
             FunctionValue *fn = callee->as.function;
-            // printf("fn->body_count=%d\n", fn->body_count); fflush(stdout);
+            // printf("retrieved fn=%p body_count=%d\n", (void*)fn, fn->body_count);
+            // fflush(stdout);
             Environment *fn_env = env_create_child(fn->closure);
-
+            // printf("fn_env=%p fn->closure=%p\n", (void*)fn_env, (void*)fn->closure);
+            // fflush(stdout);
             for (int i = 0; i < fn->param_count; i++) {
+                // printf("binding param %d\n", i); fflush(stdout);
                 Value *arg = (Value *)evaluate(expr->call.args[i], env, stmt);
+                // printf("param %d evaluated\n", i); fflush(stdout);
                 env_set_variable(fn_env, fn->param_names[i], false, *arg);
-                free(arg);
+                // free(arg);
             }
 
             Value result = (Value){ .type = TYPE_NULL };
             for (int i = 0; i < fn->body_count; i++) {
                 void *signal = execute(fn->body[i], fn_env);
-                // printf("signal=%p\n", signal); fflush(stdout);
                 if (signal != NULL) {
-                    returnSignal *ret = (returnSignal *)signal;
-                    // printf("is_return=%d\n", ret->is_return); fflush(stdout);
-                    if (ret->is_return) {
-                        result = ret->return_value;
-                        free(ret);
+                    bool *is_sig = (bool *)signal;
+                    if (*is_sig) {
+                        returnSignal *ret = (returnSignal *)signal;
+                        if (ret->signal_type == SIGNAL_RETURN) {
+                            result = ret->return_value;
+                            if (result.type == TYPE_STRING && result.as.string != NULL) {
+                                result.as.string = STRDUP(result.as.string);
+                            }
+                            free(ret);
+                            break;
+                        }
+
+                        runtime_error(
+                            expr->call.name_token,
+                            "'%s' used outside of a loop.",
+                            ret->signal_type == SIGNAL_BREAK ? "break" : "continue"
+                        );
+                        // SIGNAL_BREAK or SIGNAL_CONTINUE inside a function body
+                        // is an error — break/continue outside a loop
+                        free(signal);
                         break;
                     }
                 }
@@ -495,7 +560,7 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
 
             
             // printf("EXPR_CALL body done\n"); fflush(stdout);
-            free_environment(fn_env);
+            // free_environment(fn_env); //
             // printf("fn_env freed\n"); fflush(stdout);
             Value *heap_result = malloc(sizeof(Value));
             *heap_result = result;
@@ -504,7 +569,7 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
         }
         // TODO: Implement evaluation for other expression types (variables, binary, unary, etc.)
         default:
-            printf("UNHANDLED expr type = %d\n", expr->type); fflush(stdout);
+            // printf("UNHANDLED expr type = %d\n", expr->type); fflush(stdout);
             runtime_error(stmt->variable_declaration_stmt.variable->name_token, "Evaluation not implemented for this expression type.", NULL);
             return NULL;
     }
@@ -543,24 +608,38 @@ void *execute(Stmt *stmt, Environment *env) {
             for (int i = 0; i < stmt->block_stmt.statement_count; i++) {
                 result = execute(stmt->block_stmt.statements[i], block_env);
                 hadRuntimeError = 0;
-                if (result != NULL) break; // bubble the return signal up
+                if (result != NULL) {
+                    bool *is_sig = (bool *)result;
+                    if (*is_sig) {
+                        // it's a real signal — bubble it up
+                        break;
+                    }
+                    // it's a plain Value* — discard it
+                    free(result);
+                    result = NULL;
+                }
             }
             free_environment(block_env);
-            return result; // pass it to whoever called this block
+            return result;
         }
         case STMT_FUNCTION_DECLARATION: {
             FunctionValue *fn = malloc(sizeof(FunctionValue));
             fn->param_names = stmt->function_declaration_stmt.param_names;
             fn->param_count = stmt->function_declaration_stmt.param_count;
-            fn->body = stmt->function_declaration_stmt.body;
-            fn->body_count = stmt->function_declaration_stmt.body_count;
-            fn->closure = env;
+            fn->body        = stmt->function_declaration_stmt.body;
+            fn->body_count  = stmt->function_declaration_stmt.body_count;
+            fn->closure     = env;
+            // printf("storing function '%s' body_count=%d param_count=%d fn=%p\n",
+            //     stmt->function_declaration_stmt.name, fn->body_count, fn->param_count, (void*)fn);
+            // fflush(stdout);
             Value fn_value = { .type = TYPE_FUNCTION, .as.function = fn };
             env_set_variable(env, stmt->function_declaration_stmt.name, false, fn_value);
             return NULL;
         }
         case STMT_RETURN: {
             returnSignal *signal = malloc(sizeof(returnSignal));
+            signal->is_signal = true;
+            signal->signal_type = SIGNAL_RETURN;
             signal->is_return = true;
             if (stmt->return_stmt.value != NULL) {
                 Value *val = (Value *)evaluate(stmt->return_stmt.value, env, stmt);
@@ -568,6 +647,9 @@ void *execute(Stmt *stmt, Environment *env) {
                 if (val->type == TYPE_STRING && val->as.string != NULL) {
                     signal->return_value.as.string = STRDUP(val->as.string);
                 }
+                // printf("RETURN: type=%d int=%d\n", signal->return_value.type, 
+                //     signal->return_value.as.int_value);
+                // fflush(stdout);
             } else {
                 signal->return_value = (Value){ .type = TYPE_NULL };
             }
@@ -591,24 +673,67 @@ void *execute(Stmt *stmt, Environment *env) {
         }
         case STMT_FOR: {
             Environment *for_env = env_create_child(env);
-    
-            // initializer — let i = 0
-            if (stmt->for_stmt.initializer) {
+            bool should_break = false;
+
+            if (stmt->for_stmt.initializer)
                 execute(stmt->for_stmt.initializer, for_env);
-            }
-            // condition — i < 10
+
             while (stmt->for_stmt.condition) {
-                Value *cond = (Value *)evaluate(stmt->for_stmt.condition, for_env, stmt);
-                if (!is_truthy(cond)) break;
-                execute(stmt->for_stmt.body, for_env);
-                // increment — i = i + 1
-                if (stmt->for_stmt.increment) {
-                    evaluate(stmt->for_stmt.increment, for_env, stmt);
+                Value *cond = evaluate(stmt->for_stmt.condition, for_env, stmt);
+
+                if (!is_truthy(cond))
+                    break;
+
+                loopSignal *sig = execute(stmt->for_stmt.body, for_env);
+
+                if (sig) {
+                    switch (sig->signal_type) {
+
+                    case SIGNAL_BREAK:
+                        free(sig);
+                        should_break = true;
+                        break;
+
+                    case SIGNAL_CONTINUE:
+                        free(sig);
+
+                        if (stmt->for_stmt.increment)
+                            evaluate(stmt->for_stmt.increment, for_env, stmt);
+
+                        continue;
+
+                    case SIGNAL_RETURN:
+                        free_environment(for_env);
+                        return sig;
+                    }
                 }
+
+                if (should_break)
+                    break;
+
+                if (stmt->for_stmt.increment)
+                    evaluate(stmt->for_stmt.increment, for_env, stmt);
             }
-            
+
             free_environment(for_env);
             return NULL;
+        }
+        case STMT_BREAK: {
+            loopSignal *signal = malloc(sizeof(loopSignal));
+
+            signal->signal_type = SIGNAL_BREAK;
+            signal->value = NULL;
+
+            return signal;
+        }
+
+        case STMT_CONTINUE: {
+            loopSignal *signal = malloc(sizeof(loopSignal));
+
+            signal->signal_type = SIGNAL_CONTINUE;
+            signal->value = NULL;
+
+            return signal;
         }
         default:
             runtime_error(stmt->variable_declaration_stmt.variable->name_token, "Execution not implemented for this statement type.", NULL);

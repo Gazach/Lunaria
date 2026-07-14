@@ -1,0 +1,103 @@
+for (let mut i = 1; i < 31; i = i + 1) {
+    if (i == 15) {
+        print("FizzBuzz");
+    } elif (i == 3) {
+        print("Fizz");
+    } elif (i == 5) {
+        print("Buzz");
+    } else {
+        print(i);
+    }
+}
+
+print("test 1 complete");
+
+fn sum(n) {
+    let mut total = 0;
+    for (let mut i = 1; i < n + 1; i = i + 1) {
+        total = total + i;
+    }
+    return total;
+}
+print(sum(10));
+
+print("test 2 complete");
+
+fn max(a, b) {
+    if (a > b) {
+        return a;
+    } else {
+        return b;
+    }
+}
+print(max(10, 20));
+print(max(99, 3));
+
+print("test 3 complete");
+
+for (let mut i = 10; i > 0; i = i - 1) {
+    if (i == 5) {
+        print("stopping early");
+        break;
+    }
+    print(i);
+}
+
+print("test 4 complete");
+
+fn is_even(n) {
+    if (n == 0) {
+        return 1;
+    }
+    let mut i = 0;
+    let mut result = 1;
+    for (let mut j = 0; j < n; j = j + 1) {
+        if (result == 1) {
+            result = 0;
+        } else {
+            result = 1;
+        }
+    }
+    return result;
+}
+print(is_even(4));
+print(is_even(7));
+
+print("test 5 complete");
+
+fn multiply(a, b) {
+    let mut result = 0;
+    for (let mut i = 0; i < b; i = i + 1) {
+        result = result + a;
+    }
+    return result;
+}
+
+fn power(base, exp) {
+    let mut result = 1;
+    for (let mut i = 0; i < exp; i = i + 1) {
+        result = multiply(result, base);
+    }
+    return result;
+}
+
+print(power(2, 8));
+
+print("test 6 complete");
+
+fn process(a, b, c, d, e) {
+    let mut sum = 0;
+    for (let mut i = a; i < e + 1; i = i + 1) {
+        if (i == 0) {
+            break;
+        }
+        if (i < 0) {
+            continue;
+        }
+        sum = sum + i;
+    }
+    return sum;
+}
+print(process(-3, -2, -1, 0, 5));
+
+print("test 5 complete");

@@ -56,16 +56,37 @@ void *env_set_variable(Environment *env, const char *name, bool is_mutable, Valu
 
 // Get the value of a variable from the environment by its name. This will be used to retrieve variable values during interpretation.
 Value *env_get_variable(Environment *env, const char *name) {
-    // printf("env_get: looking for '%s' env=%p parent=%p\n", name, (void*)env, (void*)env->parent);
+    if (env == NULL) {
+        // printf("env_get: '%s' — env is NULL!\n", name);
+        // fflush(stdout);
+        return NULL;
+    }
+
+    // printf("env_get: '%s' env=%p parent=%p count=%d\n",
+    //        name,
+    //        (void*)env,
+    //        (void*)env->parent,
+    //        env->count);
     // fflush(stdout);
+
     for (int i = 0; i < env->count; i++) {
         if (strcmp(env->entries[i].name, name) == 0) {
+            // printf("FOUND '%s' in env %p\n", name, (void*)env);
+            // fflush(stdout);
             return &env->entries[i].value;
         }
     }
+
     if (env->parent != NULL) {
+        // printf("Going to parent %p\n", (void*)env->parent);
+        // fflush(stdout);
+
         return env_get_variable(env->parent, name);
     }
+
+    // printf("'%s' not found anywhere.\n", name);
+    // fflush(stdout);
+
     return NULL;
 }
 
@@ -73,6 +94,8 @@ Value *env_get_variable(Environment *env, const char *name) {
 void env_update_variable(Environment *env, const char *name, Value value) {
     for (int i = 0; i < env->count; i++) {
         if (strcmp(env->entries[i].name, name) == 0) {
+             // printf("env_update: looking for '%s' in env=%p\n", name, (void*)env); 
+             // fflush(stdout);
             if (!env->entries[i].is_mutable) {
                 char msg[256];
                 snprintf(msg, sizeof(msg), "Cannot assign to immutable variable '%s'.", name);

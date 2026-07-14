@@ -234,13 +234,13 @@ void stmt_free(struct Stmt *stmt) {
             free(stmt->function_declaration_stmt.param_names);
             free(stmt->function_declaration_stmt.param_types);
             free(stmt->function_declaration_stmt.return_type);
-            for (int i = 0; i < stmt->function_declaration_stmt.body_count; i++) {
-                stmt_free(stmt->function_declaration_stmt.body[i]);
-            }
-            free(stmt->function_declaration_stmt.body);
+            // for (int i = 0; i < stmt->function_declaration_stmt.body_count; i++) {
+            //     stmt_free(stmt->function_declaration_stmt.body[i]);
+            // }
+            // free(stmt->function_declaration_stmt.body);
             break;
         case STMT_FOR:
-            free(stmt->for_stmt.initializer);
+            stmt_free(stmt->for_stmt.initializer);  
             expr_free(stmt->for_stmt.condition);
             expr_free(stmt->for_stmt.increment);
             stmt_free(stmt->for_stmt.body);
@@ -267,7 +267,9 @@ void stmt_free(struct Stmt *stmt) {
             free(stmt->case_stmt.body);
             break;
         case STMT_BREAK:
-        case STMT_CONTINUE: 
+            break;  // nothing to free
+        case STMT_CONTINUE:
+            break;  // nothing to free
         case STMT_DEFAULT:
             for (int i = 0; i < stmt->default_stmt.case_count; i++) {
                 stmt_free(stmt->default_stmt.cases[i]);

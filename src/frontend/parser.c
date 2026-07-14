@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
@@ -143,6 +144,9 @@ void synchronize(Parser *parser) {
 // Check if the next token matches the given type without advancing the parser.
 bool check_next(Parser *parser, TokenType type) {
     if (parser->current + 1 >= parser->token_count) return false;
+    // printf("check_next: current=%d next type=%d looking for=%d\n", 
+    //     parser->current, parser->data[parser->current + 1].type, type);
+    // fflush(stdout);
     return parser->data[parser->current + 1].type == type;
 }
 
@@ -275,6 +279,9 @@ Expr *equality(Parser *parser) {
 
 // Parse an expression, which can be an equality expression followed by an optional assignment operator and another expression.
 Expr *expression(Parser *parser) {
+    // printf("expression: current token type=%d literal=%s\n", 
+    //     peek(parser)->type, peek(parser)->literal ? peek(parser)->literal : "null");
+    // fflush(stdout);
     if (check(parser, TOKEN_IDENTIFIER) && check_next(parser, TOKEN_EQUAL)) {
         Token name_token = *peek(parser);
         advance(parser); // consume identifier
@@ -614,6 +621,32 @@ Stmt *parse_for(Parser *parser) {
     return stmt_for(initializer, condition, increment, body);
 }
 
+// parsing break for loop
+Stmt *parse_break(Parser *parser) {
+    if (!match(parser, (TokenType[]){TOKEN_BREAK}, 1)) {
+        parseError(parser, "Expected 'break' as keyword.");
+        return NULL;
+    }
+    if (!match(parser, (TokenType[]){TOKEN_SEMICOLON}, 1)) {
+        parseError(parser, "Expected ';' after 'break'.");
+        return NULL;
+    }
+    return stmt_break();
+}
+
+// parsing continue for loop
+Stmt *parse_continue(Parser *parser) {
+    if (!match(parser, (TokenType[]){TOKEN_CONTINUE}, 1)) {
+        parseError(parser, "Expected 'continue' as keyword.");
+        return NULL;
+    }
+    if (!match(parser, (TokenType[]){TOKEN_SEMICOLON}, 1)) {
+        parseError(parser, "Expected ';' after 'continue'.");
+        return NULL;
+    }
+    return stmt_continue();
+}
+
 // Parse a declaration, which can be a variable declaration, function declaration, or other types of declarations (class, import, etc.). For now, we just parse variable declarations and function declarations.
 Stmt *Declaration(Parser *parser){
     // check if the current token is 'let' or 'const' for variable declaration, and then check if the next token is an identifier for the variable name, and then check if the next token is '=' for variable initialization. If any of these checks fail, we report a parsing error with an appropriate message.
@@ -631,6 +664,10 @@ Stmt *Declaration(Parser *parser){
         return parse_if(parser);
     } else if (check(parser, TOKEN_FOR)) {
         return parse_for(parser);
+    } else if (check(parser, TOKEN_BREAK)) {
+        return parse_break(parser);
+    } else if (check(parser, TOKEN_CONTINUE)) {
+        return parse_continue(parser);
     }
     else {
         Expr *expr = expression(parser);

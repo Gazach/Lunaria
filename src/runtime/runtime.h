@@ -15,10 +15,23 @@
 #include "environment.h"
 #include "builtIn.h"
 
+typedef enum {
+    SIGNAL_RETURN,
+    SIGNAL_BREAK,
+    SIGNAL_CONTINUE,
+} SignalType;
+
 typedef struct {
+    bool is_signal;
+    SignalType signal_type;  // ALWAYS first field
     bool is_return;
     Value return_value;
 } returnSignal;
+
+typedef struct {
+    SignalType signal_type;
+    Value *value;   // Only used for SIGNAL_RETURN
+} loopSignal;
 
 // Forward declaration of the expression evaluation function.
 void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt);
