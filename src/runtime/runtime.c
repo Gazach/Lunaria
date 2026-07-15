@@ -137,6 +137,45 @@ bool is_equal(Value *a, Value *b) {
     }
 }
 
+// =========================
+// Eval logical expressions (&&, ||) — short-circuiting
+// =========================
+
+// Evaluate a logical AND/OR expression. Unlike eval_binary, this only evaluates
+// the right-hand side when it's actually needed, so `false && sideEffect()` never
+// calls sideEffect(), and `true || sideEffect()` never calls it either.
+void *eval_logical(struct Expr *expr, Environment *env, struct Stmt *stmt) {
+    Value *left_value = (Value *)evaluate(expr->logical.left, env, stmt);
+    if (left_value == NULL) return NULL;
+
+    bool left_truthy = is_truthy(left_value);
+
+    if (expr->logical.op == TOKEN_OR_OR || expr->logical.op == TOKEN_OR) {
+        // a || b: if a is truthy, short-circuit and return true without evaluating b.
+        if (left_truthy) {
+            Value *result = malloc(sizeof(Value));
+            result->type = TYPE_BOOLEAN;
+            result->as.boolean = true;
+            return result;
+        }
+    } else {
+        // a && b: if a is falsy, short-circuit and return false without evaluating b.
+        if (!left_truthy) {
+            Value *result = malloc(sizeof(Value));
+            result->type = TYPE_BOOLEAN;
+            result->as.boolean = false;
+            return result;
+        }
+    }
+
+    // We only get here if the result actually depends on the right-hand side.
+    Value *right_value = (Value *)evaluate(expr->logical.right, env, stmt);
+    Value *result = malloc(sizeof(Value));
+    result->type = TYPE_BOOLEAN;
+    result->as.boolean = is_truthy(right_value);
+    return result;
+}
+
 // ========================
 // Eval binary expressions
 // ========================
@@ -466,6 +505,8 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             return eval_unary(expr, env, stmt);
         case EXPR_BINARY:
             return eval_binary(expr, env, stmt);
+        case EXPR_LOGICAL:
+            return eval_logical(expr, env, stmt);
         case EXPR_GROUPING:
             return eval_grouping(expr, env, stmt);
         case EXPR_VARIABLE:
@@ -716,6 +757,43 @@ void *execute(Stmt *stmt, Environment *env) {
             }
 
             free_environment(for_env);
+            return NULL;
+        }
+        case STMT_WHILE: {
+            Environment *while_env = env_create_child(env);
+            bool should_break = false;
+
+            while (true) {
+                Value *cond = evaluate(stmt->while_stmt.condition, while_env, stmt);
+
+                if (!is_truthy(cond))
+                    break;
+
+                loopSignal *sig = execute(stmt->while_stmt.body, while_env);
+
+                if (sig) {
+                    switch (sig->signal_type) {
+
+                    case SIGNAL_BREAK:
+                        free(sig);
+                        should_break = true;
+                        break;
+
+                    case SIGNAL_CONTINUE:
+                        free(sig);
+                        continue;
+
+                    case SIGNAL_RETURN:
+                        free_environment(while_env);
+                        return sig;
+                    }
+                }
+
+                if (should_break)
+                    break;
+            }
+
+            free_environment(while_env);
             return NULL;
         }
         case STMT_BREAK: {

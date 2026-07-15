@@ -118,6 +118,17 @@ struct Expr *expr_boolean(bool value) {
     return e;
 }
 
+// Create a new logical expression (&&, ||) with the given operator and left/right sub-expressions.
+// Kept separate from expr_binary so the interpreter can short-circuit instead of eagerly evaluating both sides.
+struct Expr *expr_logical(TokenType op, struct Expr *left, struct Expr *right) {
+    struct Expr *e      = malloc(sizeof(struct Expr));
+    e->type             = EXPR_LOGICAL;
+    e->logical.op       = op;
+    e->logical.left     = left;
+    e->logical.right    = right;
+    return e;
+}
+
 // Free the memory allocated for an expression and its sub-expressions.
 void expr_free(struct Expr *e) {
     if (!e) return;
@@ -161,6 +172,10 @@ void expr_free(struct Expr *e) {
             expr_free(e->ternary.condition);
             expr_free(e->ternary.then_branch);
             expr_free(e->ternary.else_branch);
+            break;
+        case EXPR_LOGICAL:
+            expr_free(e->logical.left);
+            expr_free(e->logical.right);
             break;
         default:
             break;

@@ -21,6 +21,7 @@ typedef enum { //define expression types
     EXPR_MEMBER_ACCESS, // New expression type for member access like obj.field
     EXPR_TERNARY, // New expression type for ternary operator like condition ? expr1 : expr2
     EXPR_ASSIGN, // New expression type for assignment like a = b
+    EXPR_LOGICAL, // New expression type for logical and/or like a && b, a || b (short-circuiting, separate from EXPR_BINARY)
 } ExprType;
 
 struct Expr { // define the structure of an expression
@@ -80,6 +81,11 @@ struct Expr { // define the structure of an expression
             struct Expr *then_branch;
             struct Expr *else_branch;
         } ternary;
+        struct {
+            TokenType op; // TOKEN_AND_AND or TOKEN_OR_OR
+            struct Expr *left;
+            struct Expr *right;
+        } logical;
     };
 };
 
@@ -98,6 +104,7 @@ struct Expr *expr_member_access(struct Expr *object, char *member);
 struct Expr *expr_ternary(struct Expr *condition, struct Expr *then_branch, struct Expr *else_branch);
 struct Expr *expr_string(const char *value);
 struct Expr *expr_boolean(bool value);
+struct Expr *expr_logical(TokenType op, struct Expr *left, struct Expr *right);
 
 
 #endif

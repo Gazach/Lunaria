@@ -75,8 +75,7 @@ struct Stmt { // define the structure of a statement
         } elif_stmt;
         struct {
             Expr *condition;
-            struct Stmt **body;
-            int body_count;
+            struct Stmt *body; // single block, same pattern as for_stmt.body
         } while_stmt;
         struct {
             Expr *value;
@@ -156,7 +155,7 @@ struct Stmt *stmt_if(Expr *condition,
                      int elif_count);
 struct Stmt *stmt_else(struct Stmt **statements, int statement_count);
 struct Stmt *stmt_elif(Expr *condition, struct Stmt **body, int body_count);
-struct Stmt *stmt_while(Expr *condition, struct Stmt **body, int body_count);
+struct Stmt *stmt_while(Expr *condition, struct Stmt *body);
 struct Stmt *stmt_return(Expr *value);
 struct Stmt *stmt_type_notation(char *type_name, Expr *value);
 struct Stmt *stmt_function_declaration(char *name, char **param_names, char **param_types, int param_count, char *return_type, struct Stmt **body, int body_count);

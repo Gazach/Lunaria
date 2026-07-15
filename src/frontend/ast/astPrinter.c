@@ -40,6 +40,11 @@ void print_expr(const Expr *expr, int indent) {
 			print_indent(indent); printf("Grouping\n");
 			print_expr(expr->grouping.expression, indent + 1);
 			break;
+		case EXPR_LOGICAL:
+			print_indent(indent); printf("Logical: %s\n", expr->logical.op == TOKEN_AND_AND ? "&&" : "||");
+			print_expr(expr->logical.left, indent + 1);
+			print_expr(expr->logical.right, indent + 1);
+			break;
 		default:
 			print_indent(indent); printf("<unknown expr>\n");
 			break;
@@ -97,8 +102,7 @@ void print_stmt(const Stmt *stmt, int indent) {
 			print_indent(indent + 1); printf("Condition:\n");
 			print_expr(stmt->while_stmt.condition, indent + 2);
 			print_indent(indent + 1); printf("Body:\n");
-			for (int i = 0; i < stmt->while_stmt.body_count; i++)
-				print_stmt(stmt->while_stmt.body[i], indent + 2);
+			print_stmt(stmt->while_stmt.body, indent + 2);
 			break;
 		case STMT_RETURN:
 			print_indent(indent); printf("Return\n");

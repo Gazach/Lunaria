@@ -58,12 +58,11 @@ struct Stmt *stmt_elif(Expr *condition, struct Stmt **body, int body_count) {
     return s;
 }
 
-// Create a new while statement with the given condition and body.
-struct Stmt *stmt_while(Expr *condition, struct Stmt **body, int body_count) {
+// Create a new while statement with the given condition and body (a single block, same pattern as stmt_for).
+struct Stmt *stmt_while(Expr *condition, struct Stmt *body) {
     struct Stmt *s = stmt_new(STMT_WHILE);
     s->while_stmt.condition     = condition;
     s->while_stmt.body          = body;
-    s->while_stmt.body_count    = body_count;
     return s;
 }
 
@@ -212,10 +211,7 @@ void stmt_free(struct Stmt *stmt) {
             break;
         case STMT_WHILE:
             expr_free(stmt->while_stmt.condition);
-            for (int i = 0; i < stmt->while_stmt.body_count; i++) {
-                stmt_free(stmt->while_stmt.body[i]);
-            }
-            free(stmt->while_stmt.body);
+            stmt_free(stmt->while_stmt.body);
             break;
         case STMT_RETURN:
             expr_free(stmt->return_stmt.value);

@@ -276,6 +276,34 @@ Expr *equality(Parser *parser) {
     return expr;
 }
 
+// Parse a logical AND expression (a && b, a and b). Sits above equality so that
+// `a == b && c == d` groups as `(a == b) && (c == d)`.
+Expr *logic_and(Parser *parser) {
+    Expr *expr = equality(parser);
+
+    while (match(parser, (TokenType[]){TOKEN_AND_AND, TOKEN_AND}, 2)) {
+        Token *operator = previous(parser);
+        Expr *right = equality(parser);
+        expr = expr_logical(operator->type, expr, right);
+    }
+
+    return expr;
+}
+
+// Parse a logical OR expression (a || b, a or b). Lowest-precedence binary operator,
+// so `a && b || c && d` groups as `(a && b) || (c && d)`.
+Expr *logic_or(Parser *parser) {
+    Expr *expr = logic_and(parser);
+
+    while (match(parser, (TokenType[]){TOKEN_OR_OR, TOKEN_OR}, 2)) {
+        Token *operator = previous(parser);
+        Expr *right = logic_and(parser);
+        expr = expr_logical(operator->type, expr, right);
+    }
+
+    return expr;
+}
+
 
 // Parse an expression, which can be an equality expression followed by an optional assignment operator and another expression.
 Expr *expression(Parser *parser) {
@@ -289,7 +317,7 @@ Expr *expression(Parser *parser) {
         Expr *value = expression(parser);
         return expr_assign(STRDUP(name_token.literal), name_token, value);
     }
-    return equality(parser);
+    return logic_or(parser);
 }
 
 //====================================================================================================================================================
@@ -621,6 +649,34 @@ Stmt *parse_for(Parser *parser) {
     return stmt_for(initializer, condition, increment, body);
 }
 
+// Parse a while statement: 'while' '(' condition ')' '{' body '}'.
+Stmt *parse_while(Parser *parser) {
+    if (!match(parser, (TokenType[]){TOKEN_WHILE}, 1)) {
+        parseError(parser, "Expected 'while' as keyword.");
+        return NULL;
+    }
+
+    if (!match(parser, (TokenType[]){TOKEN_LEFT_PAREN}, 1)) {
+        parseError(parser, "Expected '(' after 'while'.");
+        return NULL;
+    }
+
+    Expr *condition = expression(parser);
+
+    if (!match(parser, (TokenType[]){TOKEN_RIGHT_PAREN}, 1)) {
+        parseError(parser, "Expected ')' after while condition.");
+        return NULL;
+    }
+
+    Stmt *body = parse_block(parser);
+    if (!body) {
+        parseError(parser, "Expected block '{' after while condition.");
+        return NULL;
+    }
+
+    return stmt_while(condition, body);
+}
+
 // parsing break for loop
 Stmt *parse_break(Parser *parser) {
     if (!match(parser, (TokenType[]){TOKEN_BREAK}, 1)) {
@@ -664,6 +720,8 @@ Stmt *Declaration(Parser *parser){
         return parse_if(parser);
     } else if (check(parser, TOKEN_FOR)) {
         return parse_for(parser);
+    } else if (check(parser, TOKEN_WHILE)) {
+        return parse_while(parser);
     } else if (check(parser, TOKEN_BREAK)) {
         return parse_break(parser);
     } else if (check(parser, TOKEN_CONTINUE)) {

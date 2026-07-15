@@ -1,0 +1,57 @@
+// test 1. basic countdown
+let mut i = 0;
+while (i < 5) {
+    print(i);
+    i = i + 1;
+}
+
+print("============");
+
+// test 2. break inside while
+let mut j = 0;
+while (true) {
+    if (j == 3) {
+        break;
+    }
+    print(j);
+    j = j + 1;
+}
+
+print("============");
+
+// test 3. continue inside while
+let mut k = 0;
+while (k < 6) {
+    k = k + 1;
+    if (k == 3) {
+        continue;
+    }
+    print(k);
+}
+
+print("============");
+
+// test 4. while + function + return (no modulo operator in Lunaris yet, so sum until a threshold instead)
+fn sumUntilAtLeast(target) {
+    let mut total = 0;
+    let mut n = 1;
+    while (total < target) {
+        total = total + n;
+        n = n + 1;
+    }
+    return total;
+}
+print(sumUntilAtLeast(20));
+
+print("============");
+
+// test 5. nested while
+let mut a = 0;
+while (a < 3) {
+    let mut b = 0;
+    while (b < 2) {
+        print(a * 10 + b);
+        b = b + 1;
+    }
+    a = a + 1;
+}
