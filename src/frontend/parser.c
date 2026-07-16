@@ -396,7 +396,7 @@ Stmt *var_Declaration(Parser *parser) {
 
     // Create a VariableDeclaration struct to hold the variable information, including its name and modifiers.
 
-    VariableDeclaration *variable = malloc(sizeof(VariableDeclaration));
+    VariableDeclaration *variable = calloc(1, sizeof(VariableDeclaration));
     
     variable->name = _strdup(nameToken->literal);
     variable->name_token = *nameToken;

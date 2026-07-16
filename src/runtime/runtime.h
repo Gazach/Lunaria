@@ -21,14 +21,18 @@ typedef enum {
     SIGNAL_CONTINUE,
 } SignalType;
 
+#define SIGNAL_RESULT_MAGIC 0x5349474e
+
 typedef struct {
+    int magic;
     bool is_signal;
-    SignalType signal_type;  // ALWAYS first field
+    SignalType signal_type;
     bool is_return;
     Value return_value;
 } returnSignal;
 
 typedef struct {
+    int magic;
     SignalType signal_type;
     Value *value;   // Only used for SIGNAL_RETURN
 } loopSignal;

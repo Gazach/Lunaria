@@ -20,31 +20,30 @@ if /I "%1"=="debug" (
 )
 
 set ROOT_DIR=%~dp0
+set BUILD_DIR=%ROOT_DIR%build\%1
 
-if not exist "%ROOT_DIR%build\%1" mkdir "%ROOT_DIR%build\%1"
-cd /d "%ROOT_DIR%build\%1"
+if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 
 echo [cmake] Configuring %CMAKE_BUILD_TYPE% build...
-cmake -G "Ninja" ^
+cmake -S "%ROOT_DIR%." -B "%BUILD_DIR%" -G "Ninja" ^
   -DCMAKE_BUILD_TYPE=%CMAKE_BUILD_TYPE% ^
   -DCMAKE_C_COMPILER="%CLANG_PATH%\clang.exe" ^
   -DCMAKE_CXX_COMPILER="%CLANG_PATH%\clang++.exe" ^
-  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ^
-  "%ROOT_DIR%."
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 if errorlevel 1 (
     echo [error] CMake configuration failed.
     goto end
 )
 
 echo [ninja] Building...
-ninja
+ninja -C "%BUILD_DIR%"
 if errorlevel 1 (
     echo [error] Build failed.
     goto end
 )
 
 echo [run] Running Lun.exe...
-Lun.exe
+"%BUILD_DIR%\Lun.exe"
 
 :end
 endlocal

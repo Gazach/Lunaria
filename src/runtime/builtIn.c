@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include "builtIn.h"
 #include "runtimeError.h" 
 
@@ -46,6 +47,27 @@ static Value *builtin_type(Value **args, int arg_count) {
     return result;
 }
 
+// return the number of seconds elapsed since the program started, as a float.
+// same idea as Lox's native clock() from Crafting Interpreters: mainly meant
+// for benchmarking scripts, e.g. clock() before/after a loop and subtracting.
+static Value *builtin_clock(Value **args, int arg_count) {
+    if (arg_count != 0) return NULL;
+    Value *result = malloc(sizeof(Value));
+    result->type = TYPE_FLOAT;
+    result->as.float_value = (double)clock() / CLOCKS_PER_SEC;
+    return result;
+}
+
+// same as clock(), but in milliseconds instead of seconds — nicer for eyeballing
+// fast loops without staring at 0.0001234.
+static Value *builtin_clockMs(Value **args, int arg_count) {
+    if (arg_count != 0) return NULL;
+    Value *result = malloc(sizeof(Value));
+    result->type = TYPE_FLOAT;
+    result->as.float_value = ((double)clock() / CLOCKS_PER_SEC) * 1000.0;
+    return result;
+}
+
 // ========================
 // builtin registry
 // ========================
@@ -58,8 +80,10 @@ typedef struct {
 
 // Create an array of built-in functions that can be called from the interpreted code. This will allow the interpreter to recognize and execute built-in functions when they are called.
 static Builtin builtins[] = {
-    { "print", builtin_print },
-    { "type",  builtin_type  },
+    { "print",   builtin_print   },
+    { "type",    builtin_type    },
+    { "clock",   builtin_clock   },
+    { "clockMs", builtin_clockMs },
 };
 
 // Get the number of built-in functions in the registry. This will be used to iterate over the built-in functions when looking them up by name. 

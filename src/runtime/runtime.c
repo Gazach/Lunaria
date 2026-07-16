@@ -14,6 +14,14 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt);
 void *execute(Stmt *stmt, Environment *env);
 extern int hadRuntimeError; // Flag to indicate if a runtime error has occurred
 
+static bool is_signal_result(void *result) {
+    if (result == NULL) return false;
+    returnSignal *ret = (returnSignal *)result;
+    if (ret->magic == SIGNAL_RESULT_MAGIC) return true;
+    loopSignal *loop = (loopSignal *)result;
+    return loop->magic == SIGNAL_RESULT_MAGIC;
+}
+
 // =========================
 // Eval literal expressions/helper functions
 // =========================
@@ -477,7 +485,7 @@ Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
             return NULL;
         }
     }
-    env_set_variable(env, stmt->variable_declaration_stmt.variable->name, stmt->variable_declaration_stmt.variable->is_mutable, *init_value);
+    env_set_variable(env, stmt->variable_declaration_stmt.variable->name, (stmt->variable_declaration_stmt.variable->modifiers & MODIFIER_MUTABLE) != 0, *init_value);
     // free(init_value); // Free the temporary value after setting it in the environment
     return NULL;
 }
@@ -574,8 +582,7 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             for (int i = 0; i < fn->body_count; i++) {
                 void *signal = execute(fn->body[i], fn_env);
                 if (signal != NULL) {
-                    bool *is_sig = (bool *)signal;
-                    if (*is_sig) {
+                    if (is_signal_result(signal)) {
                         returnSignal *ret = (returnSignal *)signal;
                         if (ret->signal_type == SIGNAL_RETURN) {
                             result = ret->return_value;
@@ -650,8 +657,7 @@ void *execute(Stmt *stmt, Environment *env) {
                 result = execute(stmt->block_stmt.statements[i], block_env);
                 hadRuntimeError = 0;
                 if (result != NULL) {
-                    bool *is_sig = (bool *)result;
-                    if (*is_sig) {
+                    if (is_signal_result(result)) {
                         // it's a real signal — bubble it up
                         break;
                     }
@@ -679,6 +685,7 @@ void *execute(Stmt *stmt, Environment *env) {
         }
         case STMT_RETURN: {
             returnSignal *signal = malloc(sizeof(returnSignal));
+            signal->magic = SIGNAL_RESULT_MAGIC;
             signal->is_signal = true;
             signal->signal_type = SIGNAL_RETURN;
             signal->is_return = true;
@@ -799,6 +806,7 @@ void *execute(Stmt *stmt, Environment *env) {
         case STMT_BREAK: {
             loopSignal *signal = malloc(sizeof(loopSignal));
 
+            signal->magic = SIGNAL_RESULT_MAGIC;
             signal->signal_type = SIGNAL_BREAK;
             signal->value = NULL;
 
@@ -808,6 +816,7 @@ void *execute(Stmt *stmt, Environment *env) {
         case STMT_CONTINUE: {
             loopSignal *signal = malloc(sizeof(loopSignal));
 
+            signal->magic = SIGNAL_RESULT_MAGIC;
             signal->signal_type = SIGNAL_CONTINUE;
             signal->value = NULL;
 
