@@ -14,6 +14,7 @@ Environment *create_environment() {
     env->count = 0;
     env->capacity = 0;
     env->parent = NULL; // For global environment, parent is NULL
+    env->static_scope = NULL; // No enclosing function by default
     return env;
 }
 
@@ -127,6 +128,9 @@ void env_update_variable(Environment *env, const char *name, Value value) {
 Environment *env_create_child(Environment *parent) {
     Environment *child = create_environment();
     child->parent = parent;
+    child->static_scope = parent->static_scope; // inherit; a function call
+                                                 // site overrides this right
+                                                 // after creation
     return child;
 }
 

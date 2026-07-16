@@ -17,6 +17,9 @@ struct Environment{
     int count;
     int capacity;
     struct Environment *parent; // Pointer to the parent environment for nested scopes
+    struct Environment *static_scope; // Nearest enclosing function's persistent
+                                       // store for `static` locals, or NULL if
+                                       // there isn't one (e.g. global scope).
 };
 
 // exposed functions for environment management

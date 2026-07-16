@@ -284,6 +284,7 @@ static void scanToken(Lexer* lexer, TokenArray* tokens) {
         case '+': addToken(lexer, tokens, TOKEN_PLUS); break;
         case ';': addToken(lexer, tokens, TOKEN_SEMICOLON); break;
         case '*': addToken(lexer, tokens, TOKEN_STAR); break;
+        case '%': addToken(lexer, tokens, TOKEN_PERCENT); break;
         case '!': addToken(lexer, tokens, match(lexer, '=') ? TOKEN_NOT_EQUAL : TOKEN_NOT); break;
         case '=': addToken(lexer, tokens, match(lexer, '=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL); break;
         case '<': addToken(lexer, tokens, match(lexer, '=') ? TOKEN_LESS_EQUAL : TOKEN_LESS); break;

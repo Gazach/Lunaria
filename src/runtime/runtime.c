@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "runtime.h"
 
@@ -138,6 +139,10 @@ bool is_equal(Value *a, Value *b) {
             return a->as.float_value == b->as.float_value;
         case TYPE_BOOLEAN:
             return a->as.boolean == b->as.boolean;
+        case TYPE_STRING:
+            if (a->as.string == NULL || b->as.string == NULL)
+                return a->as.string == b->as.string;
+            return strcmp(a->as.string, b->as.string) == 0;
         case TYPE_NULL:
             return true;
         default:
@@ -182,6 +187,21 @@ void *eval_logical(struct Expr *expr, Environment *env, struct Stmt *stmt) {
     result->type = TYPE_BOOLEAN;
     result->as.boolean = is_truthy(right_value);
     return result;
+}
+
+// =========================
+// Eval ternary expressions (condition ? then : else) — short-circuiting,
+// same idea as eval_logical: only the chosen branch is ever evaluated.
+// =========================
+void *eval_ternary(struct Expr *expr, Environment *env, struct Stmt *stmt) {
+    Value *cond_value = (Value *)evaluate(expr->ternary.condition, env, stmt);
+    if (cond_value == NULL) return NULL;
+
+    if (is_truthy(cond_value)) {
+        return evaluate(expr->ternary.then_branch, env, stmt);
+    } else {
+        return evaluate(expr->ternary.else_branch, env, stmt);
+    }
 }
 
 // ========================
@@ -271,6 +291,29 @@ void *eval_binary(struct Expr *expr, Environment *env, struct Stmt *stmt) {
             } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_INT) {
                 result->type = TYPE_FLOAT;
                 result->as.float_value = left_value->as.float_value / (float)right_value->as.int_value;
+            }
+            return result;
+        }
+        case TOKEN_PERCENT: {
+            // Modulo by zero check, same shape as the division-by-zero check above
+            if ((right_value->type == TYPE_INT && right_value->as.int_value == 0) ||
+                (right_value->type == TYPE_FLOAT && right_value->as.float_value == 0.0f)) {
+                runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Modulo by zero.", NULL);
+                return NULL;
+            }
+            Value *result = malloc(sizeof(Value));
+            if (left_value->type == TYPE_INT && right_value->type == TYPE_INT) {
+                result->type = TYPE_INT;
+                result->as.int_value = left_value->as.int_value % right_value->as.int_value;
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_FLOAT) {
+                result->type = TYPE_FLOAT;
+                result->as.float_value = fmodf(left_value->as.float_value, right_value->as.float_value);
+            } else if (left_value->type == TYPE_INT && right_value->type == TYPE_FLOAT) {
+                result->type = TYPE_FLOAT;
+                result->as.float_value = fmodf((float)left_value->as.int_value, right_value->as.float_value);
+            } else if (left_value->type == TYPE_FLOAT && right_value->type == TYPE_INT) {
+                result->type = TYPE_FLOAT;
+                result->as.float_value = fmodf(left_value->as.float_value, (float)right_value->as.int_value);
             }
             return result;
         }
@@ -413,20 +456,28 @@ Value *eval_variable(struct Expr *expr, Environment *env, struct Stmt *stmt) {
 Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
     
     const char *name = stmt->variable_declaration_stmt.variable->name;
-    // printf("storing '%s' env=%p env->parent=%p\n", 
-    //     stmt->variable_declaration_stmt.variable->name,
-    //     (void*)env, (void*)env->parent);
-    // fflush(stdout);
-    // printf("declaring '%s' in env=%p\n", 
-    //     stmt->variable_declaration_stmt.variable->name, (void*)env);
-    // fflush(stdout);
-    // check if variable already declared in THIS scope (not parent)
-    for (int i = 0; i < env->count; i++) {
-        if (strcmp(env->entries[i].name, name) == 0) {
-            char msg[256];
-            snprintf(msg, sizeof(msg), "Variable '%s' is already declared in this scope.", name);
-            runtime_error(stmt->variable_declaration_stmt.variable->name_token, msg, NULL);
-            return NULL;
+    bool is_static = (stmt->variable_declaration_stmt.variable->modifiers & MODIFIER_STATIC) != 0;
+    Environment *target_env = env;
+
+    if (is_static && env->static_scope != NULL) {
+        target_env = env->static_scope;
+        // static locals only run their initializer once — if this name is
+        // already sitting in the function's static store from a previous
+        // call, just leave its current value alone and do nothing.
+        for (int i = 0; i < target_env->count; i++) {
+            if (strcmp(target_env->entries[i].name, name) == 0) {
+                return NULL;
+            }
+        }
+    } else {
+        // check if variable already declared in THIS scope (not parent)
+        for (int i = 0; i < env->count; i++) {
+            if (strcmp(env->entries[i].name, name) == 0) {
+                char msg[256];
+                snprintf(msg, sizeof(msg), "Variable '%s' is already declared in this scope.", name);
+                runtime_error(stmt->variable_declaration_stmt.variable->name_token, msg, NULL);
+                return NULL;
+            }
         }
     }
     
@@ -485,7 +536,7 @@ Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
             return NULL;
         }
     }
-    env_set_variable(env, stmt->variable_declaration_stmt.variable->name, (stmt->variable_declaration_stmt.variable->modifiers & MODIFIER_MUTABLE) != 0, *init_value);
+    env_set_variable(target_env, name, (stmt->variable_declaration_stmt.variable->modifiers & MODIFIER_MUTABLE) != 0, *init_value);
     // free(init_value); // Free the temporary value after setting it in the environment
     return NULL;
 }
@@ -515,6 +566,8 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             return eval_binary(expr, env, stmt);
         case EXPR_LOGICAL:
             return eval_logical(expr, env, stmt);
+        case EXPR_TERNARY:
+            return eval_ternary(expr, env, stmt);
         case EXPR_GROUPING:
             return eval_grouping(expr, env, stmt);
         case EXPR_VARIABLE:
@@ -567,7 +620,14 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             FunctionValue *fn = callee->as.function;
             // printf("retrieved fn=%p body_count=%d\n", (void*)fn, fn->body_count);
             // fflush(stdout);
-            Environment *fn_env = env_create_child(fn->closure);
+            if (fn->static_env == NULL) {
+                // first call — create this function's persistent home for `static` locals
+                fn->static_env = env_create_child(fn->closure);
+            }
+            Environment *fn_env = env_create_child(fn->static_env);
+            // this call's local scope sees its OWN function's statics first,
+            // not whatever static scope happened to be active at the call site
+            fn_env->static_scope = fn->static_env;
             // printf("fn_env=%p fn->closure=%p\n", (void*)fn_env, (void*)fn->closure);
             // fflush(stdout);
             for (int i = 0; i < fn->param_count; i++) {
@@ -676,6 +736,7 @@ void *execute(Stmt *stmt, Environment *env) {
             fn->body        = stmt->function_declaration_stmt.body;
             fn->body_count  = stmt->function_declaration_stmt.body_count;
             fn->closure     = env;
+            fn->static_env  = NULL; // created lazily on first call
             // printf("storing function '%s' body_count=%d param_count=%d fn=%p\n",
             //     stmt->function_declaration_stmt.name, fn->body_count, fn->param_count, (void*)fn);
             // fflush(stdout);
@@ -802,6 +863,59 @@ void *execute(Stmt *stmt, Environment *env) {
 
             free_environment(while_env);
             return NULL;
+        }
+        case STMT_SWITCH: {
+            Value *switch_value = (Value *)evaluate(stmt->switch_stmt.expression, env, stmt);
+            Stmt *matched_case = NULL;
+
+            for (int i = 0; i < stmt->switch_stmt.case_count; i++) {
+                Stmt *this_case = stmt->switch_stmt.cases[i];
+                Value *case_value = (Value *)evaluate(this_case->case_stmt.value, env, stmt);
+                bool matches = is_equal(switch_value, case_value);
+                free(case_value);
+                if (matches) {
+                    matched_case = this_case;
+                    break;
+                }
+            }
+
+            if (matched_case == NULL) {
+                matched_case = stmt->switch_stmt.default_case;
+            }
+
+            free(switch_value);
+
+            if (matched_case == NULL) {
+                // no case matched and there's no default — do nothing
+                return NULL;
+            }
+
+            // give the matched case its own scope, same as a loop body/block
+            Environment *case_env = env_create_child(env);
+            void *result = NULL;
+            for (int i = 0; i < matched_case->case_stmt.body_count; i++) {
+                result = execute(matched_case->case_stmt.body[i], case_env);
+                hadRuntimeError = 0;
+                if (result != NULL) {
+                    if (is_signal_result(result)) {
+                        loopSignal *sig = (loopSignal *)result;
+                        if (sig->signal_type == SIGNAL_BREAK) {
+                            // break just exits the switch itself — swallow it here,
+                            // don't let it escape and break an outer loop too.
+                            free(sig);
+                            result = NULL;
+                        }
+                        // SIGNAL_CONTINUE and SIGNAL_RETURN are meant for an
+                        // enclosing loop/function, so let those bubble up untouched.
+                        break;
+                    }
+                    // plain Value* from an expression statement — discard it
+                    free(result);
+                    result = NULL;
+                }
+            }
+            free_environment(case_env);
+            return result;
         }
         case STMT_BREAK: {
             loopSignal *signal = malloc(sizeof(loopSignal));

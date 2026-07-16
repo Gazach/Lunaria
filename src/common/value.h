@@ -24,6 +24,8 @@ typedef struct {
     struct Stmt **body;
     int body_count;
     struct Environment *closure; // The environment where the function was defined, for closures
+    struct Environment *static_env; // Lazily created, persists across calls —
+                                     // holds this function's `static` locals.
 } FunctionValue;
 
 

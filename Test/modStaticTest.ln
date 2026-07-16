@@ -1,0 +1,74 @@
+// modStaticTest.ln — quick sanity check for modulo and `static` locals
+
+// test 1: basic modulo
+print(10 % 3);   // 1
+print(9 % 3);    // 0
+print(7.5 % 2);  // 1.5
+print(-7 % 3);   // -1  (C-style truncating remainder, matches / and *)
+
+print("============");
+
+// test 2: modulo used for an even/odd filter
+let mut i = 0;
+while (i < 10) {
+    if (i % 2 == 0) {
+        print(i);
+    }
+    i = i + 1;
+}
+
+print("============");
+
+// test 3: static local persists across calls
+fn counter() {
+    let mut static count = 0;
+    count = count + 1;
+    return count;
+}
+print(counter());  // 1
+print(counter());  // 2
+print(counter());  // 3
+print(counter());  // 4
+
+print("============");
+
+// test 4: two functions each get their OWN independent static store
+fn counterA() {
+    let mut static count = 0;
+    count = count + 1;
+    return count;
+}
+fn counterB() {
+    let mut static count = 100;
+    count = count + 1;
+    return count;
+}
+print(counterA());  // 1
+print(counterB());  // 101
+print(counterA());  // 2
+print(counterB());  // 102
+
+print("============");
+
+// test 5: a regular (non-static) local should NOT persist — resets every call
+fn notStatic() {
+    let mut count = 0;
+    count = count + 1;
+    return count;
+}
+print(notStatic());  // 1
+print(notStatic());  // 1
+print(notStatic());  // 1
+
+print("============");
+
+// test 6: recursion shares the same static store
+fn recurseCount(n) {
+    let mut static calls = 0;
+    calls = calls + 1;
+    if (n <= 0) {
+        return calls;
+    }
+    return recurseCount(n - 1);
+}
+print(recurseCount(4));  // 5  (n = 4,3,2,1,0)

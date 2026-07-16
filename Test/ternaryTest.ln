@@ -1,0 +1,39 @@
+// ternaryTest.ln — quick sanity check for the ternary operator
+
+// test 1: basic ternary
+let mut x = 5;
+print(x > 3 ? "big" : "small");   // big
+
+print("============");
+
+// test 2: used as a value inside a larger expression
+let mut y = (x > 3 ? 100 : 200) + 1;
+print(y);   // 101
+
+print("============");
+
+// test 3: chained/nested ternary (right-associative, like C)
+let mut score = 75;
+print(score >= 90 ? "A" : score >= 80 ? "B" : score >= 70 ? "C" : "F");   // C
+
+print("============");
+
+// test 4: precedence — the condition itself can be a full logical expression
+let mut a = false;
+let mut b = true;
+print(a || b ? "yes" : "no");   // yes
+
+print("============");
+
+// test 5: assignment from a ternary
+let mut result = 0;
+result = x > 3 ? 1 : 2;
+print(result);   // 1
+
+print("============");
+
+// test 6: short-circuit — the untaken branch should NEVER actually run.
+// If it did, either of these would throw a division-by-zero error.
+print(x > 0 ? "safe" : 5 / 0);      // safe
+print(x < 0 ? 5 / 0 : "still safe"); // still safe
+print("no crash — short-circuit works");

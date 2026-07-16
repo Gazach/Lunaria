@@ -1,0 +1,94 @@
+// switchTest.ln — quick sanity check for the new switch/case feature
+
+// test 1: basic match
+let mut day = 3;
+switch (day) {
+    case 1:
+        print("Monday");
+    case 2:
+        print("Tuesday");
+    case 3:
+        print("Wednesday");
+    default:
+        print("some other day");
+}
+
+print("============");
+
+// test 2: falls through to default when nothing matches
+let mut code = 404;
+switch (code) {
+    case 200:
+        print("OK");
+    case 500:
+        print("Server Error");
+    default:
+        print("Unknown status");
+}
+
+print("============");
+
+// test 3: no default, no match — should just do nothing and move on
+let mut x = 99;
+switch (x) {
+    case 1:
+        print("one");
+    case 2:
+        print("two");
+}
+print("after switch with no match");
+
+print("============");
+
+// test 4: no fall-through — only the matching case's body runs
+let mut y = 2;
+switch (y) {
+    case 1:
+        print("one");
+    case 2:
+        print("two-a");
+        print("two-b");
+    case 3:
+        print("three");
+}
+
+print("============");
+
+// test 5: break exits the case early
+let mut z = 1;
+switch (z) {
+    case 1:
+        print("start");
+        break;
+        print("should NOT print");
+}
+
+print("============");
+
+// test 6: string matching
+let mut name = "bob";
+switch (name) {
+    case "alice":
+        print("hi alice");
+    case "bob":
+        print("hi bob");
+    default:
+        print("who are you");
+}
+
+print("============");
+
+// test 7: switch inside a while loop — break should only exit the switch,
+// continue should still affect the while loop
+let mut i = 0;
+while (i < 5) {
+    i = i + 1;
+    switch (i) {
+        case 3:
+            continue;
+        default:
+            print(i);
+    }
+    print("  (after switch, still in loop)");
+}
+print("loop finished normally");

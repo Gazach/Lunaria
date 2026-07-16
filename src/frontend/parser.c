@@ -228,7 +228,7 @@ Expr *Unary(Parser *parser){
 Expr *factor(Parser *parser) {
     Expr *expr = Unary(parser);
 
-    while (match(parser, (TokenType[]){TOKEN_STAR, TOKEN_SLASH}, 2)) {
+    while (match(parser, (TokenType[]){TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT}, 3)) {
         Token *operator = previous(parser);
         Expr *right = Unary(parser);
         expr = expr_binary(operator->type, expr, right);
@@ -305,6 +305,26 @@ Expr *logic_or(Parser *parser) {
 }
 
 
+// Parse a ternary expression (condition ? then_branch : else_branch).
+// Sits above logic_or so `a || b ? c : d` groups as `(a || b) ? c : d`.
+// Right-associative, so `a ? b : c ? d : e` groups as `a ? b : (c ? d : e)`,
+// matching C's ternary chaining.
+Expr *ternary(Parser *parser) {
+    Expr *condition = logic_or(parser);
+
+    if (match(parser, (TokenType[]){TOKEN_QUESTION_MARK}, 1)) {
+        Expr *then_branch = expression(parser);
+        if (!match(parser, (TokenType[]){TOKEN_COLON}, 1)) {
+            parseError(parser, "Expected ':' in ternary expression.");
+            return NULL;
+        }
+        Expr *else_branch = ternary(parser);
+        return expr_ternary(condition, then_branch, else_branch);
+    }
+
+    return condition;
+}
+
 // Parse an expression, which can be an equality expression followed by an optional assignment operator and another expression.
 Expr *expression(Parser *parser) {
     // printf("expression: current token type=%d literal=%s\n", 
@@ -317,7 +337,7 @@ Expr *expression(Parser *parser) {
         Expr *value = expression(parser);
         return expr_assign(STRDUP(name_token.literal), name_token, value);
     }
-    return logic_or(parser);
+    return ternary(parser);
 }
 
 //====================================================================================================================================================
@@ -703,6 +723,115 @@ Stmt *parse_continue(Parser *parser) {
     return stmt_continue();
 }
 
+// parse the statements inside one case/default body: everything up to the
+// next "case", "default", or the closing "}" of the switch.
+static Stmt **parse_case_body(Parser *parser, int *out_count) {
+    Stmt **body = NULL;
+    int count = 0;
+    int capacity = 0;
+
+    while (!check(parser, TOKEN_CASE) && !check(parser, TOKEN_DEFAULT) &&
+           !check(parser, TOKEN_RIGHT_BRACE) && !isAtEnd(parser)) {
+        Stmt *stmt = Declaration(parser);
+        if (stmt != NULL) {
+            if (count >= capacity) {
+                int newCapacity = capacity == 0 ? 4 : capacity * 2;
+                body = realloc(body, newCapacity * sizeof(Stmt *));
+                capacity = newCapacity;
+            }
+            body[count++] = stmt;
+        } else {
+            synchronize(parser);
+        }
+    }
+
+    *out_count = count;
+    return body;
+}
+
+// parsing switch statements, e.g.
+// switch (i) {
+//     case 1:
+//         print("one");
+//     case 2:
+//         print("two");
+//     default:
+//         print("something else");
+// }
+// Note: no fall-through between cases — each matching case's body runs and
+// the switch is done. "break;" still works if you want to bail out of a
+// case body early; "continue;"/"return;" pass through to an enclosing
+// loop/function like normal.
+Stmt *parse_switch(Parser *parser) {
+    if (!match(parser, (TokenType[]){TOKEN_SWITCH}, 1)) {
+        parseError(parser, "Expected 'switch' as keyword.");
+        return NULL;
+    }
+    if (!match(parser, (TokenType[]){TOKEN_LEFT_PAREN}, 1)) {
+        parseError(parser, "Expected '(' after 'switch'.");
+        return NULL;
+    }
+
+    Expr *switch_value = expression(parser);
+
+    if (!match(parser, (TokenType[]){TOKEN_RIGHT_PAREN}, 1)) {
+        parseError(parser, "Expected ')' after switch expression.");
+        return NULL;
+    }
+    if (!match(parser, (TokenType[]){TOKEN_LEFT_BRACE}, 1)) {
+        parseError(parser, "Expected '{' after switch expression.");
+        return NULL;
+    }
+
+    Stmt **cases = NULL;
+    int case_count = 0;
+    int case_capacity = 0;
+    Stmt *default_case = NULL;
+
+    while (!check(parser, TOKEN_RIGHT_BRACE) && !isAtEnd(parser)) {
+        if (match(parser, (TokenType[]){TOKEN_CASE}, 1)) {
+            Expr *value = expression(parser);
+            if (!match(parser, (TokenType[]){TOKEN_COLON}, 1)) {
+                parseError(parser, "Expected ':' after case value.");
+                return NULL;
+            }
+            int body_count = 0;
+            Stmt **body = parse_case_body(parser, &body_count);
+
+            if (case_count >= case_capacity) {
+                int newCapacity = case_capacity == 0 ? 4 : case_capacity * 2;
+                cases = realloc(cases, newCapacity * sizeof(Stmt *));
+                case_capacity = newCapacity;
+            }
+            cases[case_count++] = stmt_case(value, body, body_count);
+        } else if (match(parser, (TokenType[]){TOKEN_DEFAULT}, 1)) {
+            if (default_case != NULL) {
+                parseError(parser, "Switch statement can only have one 'default' case.");
+                return NULL;
+            }
+            if (!match(parser, (TokenType[]){TOKEN_COLON}, 1)) {
+                parseError(parser, "Expected ':' after 'default'.");
+                return NULL;
+            }
+            int body_count = 0;
+            Stmt **body = parse_case_body(parser, &body_count);
+            // reuse stmt_case with a NULL value as the "this is default" marker —
+            // it's never matched against, just executed when nothing else matches.
+            default_case = stmt_case(NULL, body, body_count);
+        } else {
+            parseError(parser, "Expected 'case' or 'default' inside switch body.");
+            return NULL;
+        }
+    }
+
+    if (!match(parser, (TokenType[]){TOKEN_RIGHT_BRACE}, 1)) {
+        parseError(parser, "Expected '}' after switch body.");
+        return NULL;
+    }
+
+    return stmt_switch(switch_value, cases, case_count, default_case);
+}
+
 // Parse a declaration, which can be a variable declaration, function declaration, or other types of declarations (class, import, etc.). For now, we just parse variable declarations and function declarations.
 Stmt *Declaration(Parser *parser){
     // check if the current token is 'let' or 'const' for variable declaration, and then check if the next token is an identifier for the variable name, and then check if the next token is '=' for variable initialization. If any of these checks fail, we report a parsing error with an appropriate message.
@@ -726,6 +855,8 @@ Stmt *Declaration(Parser *parser){
         return parse_break(parser);
     } else if (check(parser, TOKEN_CONTINUE)) {
         return parse_continue(parser);
+    } else if (check(parser, TOKEN_SWITCH)) {
+        return parse_switch(parser);
     }
     else {
         Expr *expr = expression(parser);
