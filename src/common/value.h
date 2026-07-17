@@ -15,6 +15,7 @@ typedef enum {
     TYPE_NULL,
 
     TYPE_FUNCTION, // for function values
+    TYPE_ARRAY, // for array/list values
 } LunarisType;
 
 // function values 
@@ -28,8 +29,18 @@ typedef struct {
                                      // holds this function's `static` locals.
 } FunctionValue;
 
+typedef struct Value Value; // forward declaration — ArrayValue needs to point
+                             // at Value before Value itself is fully defined
 
+// array/list values — a growable buffer of Values, same realloc-doubling
+// pattern used everywhere else in the interpreter (Stmt** lists, etc.)
 typedef struct {
+    Value *elements;
+    int count;
+    int capacity;
+} ArrayValue;
+
+struct Value {
     LunarisType type;
     union {
         int int_value;
@@ -39,7 +50,8 @@ typedef struct {
         char character;
         void *void_value;
         FunctionValue *function;
+        ArrayValue *array;
     } as;
-} Value;
+};
 
 #endif // VALUE_H

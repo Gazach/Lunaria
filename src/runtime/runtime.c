@@ -145,6 +145,15 @@ bool is_equal(Value *a, Value *b) {
             return strcmp(a->as.string, b->as.string) == 0;
         case TYPE_NULL:
             return true;
+        case TYPE_ARRAY: {
+            ArrayValue *arr_a = a->as.array;
+            ArrayValue *arr_b = b->as.array;
+            if (arr_a->count != arr_b->count) return false;
+            for (int i = 0; i < arr_a->count; i++) {
+                if (!is_equal(&arr_a->elements[i], &arr_b->elements[i])) return false;
+            }
+            return true;
+        }
         default:
             return false;
     }
@@ -425,6 +434,59 @@ char *stringifyValue(Value *value) {
             return STRDUP(value->as.string ? value->as.string : "");
         case TYPE_NULL:
             return STRDUP("null");
+        case TYPE_ARRAY: {
+            ArrayValue *arr = value->as.array;
+            size_t bufsize = 64 + (size_t)arr->count * 16;
+            char *buffer = malloc(bufsize);
+            if (buffer == NULL) return STRDUP("<allocation-failed>");
+
+            size_t len = 0;
+            int written = snprintf(buffer, bufsize, "[");
+            if (written < 0) {
+                free(buffer);
+                return STRDUP("<format-error>");
+            }
+            len = (size_t)written;
+
+            for (int i = 0; i < arr->count; i++) {
+                char *element_str = stringifyValue(&arr->elements[i]);
+                size_t element_len = strlen(element_str);
+                size_t needed = len + element_len + (i < arr->count - 1 ? 2 : 0) + 2; // "]" + nul
+                if (needed > bufsize) {
+                    while (bufsize < needed) {
+                        bufsize *= 2;
+                    }
+                    char *grown = realloc(buffer, bufsize);
+                    if (grown == NULL) {
+                        free(buffer);
+                        free(element_str);
+                        return STRDUP("<allocation-failed>");
+                    }
+                    buffer = grown;
+                }
+
+                memcpy(buffer + len, element_str, element_len);
+                len += element_len;
+                if (i < arr->count - 1) {
+                    memcpy(buffer + len, ", ", 2);
+                    len += 2;
+                }
+                free(element_str);
+            }
+
+            if (len + 2 > bufsize) {
+                char *grown = realloc(buffer, len + 2);
+                if (grown == NULL) {
+                    free(buffer);
+                    return STRDUP("<allocation-failed>");
+                }
+                buffer = grown;
+            }
+
+            buffer[len++] = ']';
+            buffer[len] = '\0';
+            return buffer;
+        }
         default:
             return STRDUP("<unknown>");
     }
@@ -542,6 +604,105 @@ Value *eval_variable_declaration(struct Stmt *stmt, Environment *env) {
 }
 
 // =========================
+// Eval array literals and indexing
+// =========================
+
+// helper: append a Value (by value) onto an ArrayValue's buffer, growing it
+// the same realloc-doubling way the rest of the interpreter grows lists.
+static void array_push(ArrayValue *arr, Value value) {
+    if (arr->count >= arr->capacity) {
+        int newCapacity = arr->capacity == 0 ? 8 : arr->capacity * 2;
+        arr->elements = realloc(arr->elements, newCapacity * sizeof(Value));
+        arr->capacity = newCapacity;
+    }
+    arr->elements[arr->count++] = value;
+}
+
+// Evaluate an array literal like [1, 2, 3] into a heap-allocated TYPE_ARRAY Value.
+void *eval_array_literal(struct Expr *expr, Environment *env, struct Stmt *stmt) {
+    ArrayValue *arr = malloc(sizeof(ArrayValue));
+    arr->elements = NULL;
+    arr->count = 0;
+    arr->capacity = 0;
+
+    for (int i = 0; i < expr->array_literal.count; i++) {
+        Value *element = (Value *)evaluate(expr->array_literal.elements[i], env, stmt);
+        if (element == NULL) continue;
+        array_push(arr, *element);
+        free(element); // the Value was copied by-value into the array buffer above
+    }
+
+    Value *result = malloc(sizeof(Value));
+    result->type = TYPE_ARRAY;
+    result->as.array = arr;
+    return result;
+}
+
+// Shared by eval_index and eval_index_assign: evaluate the array/index
+// sub-expressions and validate them. Returns the resolved ArrayValue* and
+// int index via out-params, or returns false (and reports the error) if
+// either side is invalid.
+static bool resolve_index_target(struct Expr *expr, Environment *env, struct Stmt *stmt,
+                                  struct Expr *array_expr, struct Expr *index_expr,
+                                  ArrayValue **out_array, int *out_index) {
+    Value *array_value = (Value *)evaluate(array_expr, env, stmt);
+    if (array_value == NULL) return false;
+    if (array_value->type != TYPE_ARRAY) {
+        runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Cannot index into a non-array value.", NULL);
+        free(array_value);
+        return false;
+    }
+    ArrayValue *arr = array_value->as.array;
+    free(array_value); // just the Value wrapper — the ArrayValue* underneath is owned by the environment, not this copy
+
+    Value *index_value = (Value *)evaluate(index_expr, env, stmt);
+    if (index_value == NULL) return false;
+    if (index_value->type != TYPE_INT) {
+        runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Array index must be an int.", NULL);
+        free(index_value);
+        return false;
+    }
+    int index = index_value->as.int_value;
+    free(index_value);
+
+    if (index < 0 || index >= arr->count) {
+        runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "Array index out of bounds.", NULL);
+        return false;
+    }
+
+    *out_array = arr;
+    *out_index = index;
+    return true;
+}
+
+// Evaluate arr[index] (read).
+void *eval_index(struct Expr *expr, Environment *env, struct Stmt *stmt) {
+    ArrayValue *arr;
+    int index;
+    if (!resolve_index_target(expr, env, stmt, expr->index.array, expr->index.index, &arr, &index)) {
+        return NULL;
+    }
+    Value *result = malloc(sizeof(Value));
+    *result = arr->elements[index];
+    return result;
+}
+
+// Evaluate arr[index] = value (write). Returns the assigned value, same
+// convention as EXPR_ASSIGN.
+void *eval_index_assign(struct Expr *expr, Environment *env, struct Stmt *stmt) {
+    ArrayValue *arr;
+    int index;
+    if (!resolve_index_target(expr, env, stmt, expr->index_assign.array, expr->index_assign.index, &arr, &index)) {
+        return NULL;
+    }
+    Value *new_value = (Value *)evaluate(expr->index_assign.value, env, stmt);
+    if (new_value == NULL) return NULL;
+
+    arr->elements[index] = *new_value;
+    return new_value;
+}
+
+// =========================
 // Main evaluation function
 // =========================
 
@@ -568,6 +729,12 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             return eval_logical(expr, env, stmt);
         case EXPR_TERNARY:
             return eval_ternary(expr, env, stmt);
+        case EXPR_ARRAY_LITERAL:
+            return eval_array_literal(expr, env, stmt);
+        case EXPR_INDEX:
+            return eval_index(expr, env, stmt);
+        case EXPR_INDEX_ASSIGN:
+            return eval_index_assign(expr, env, stmt);
         case EXPR_GROUPING:
             return eval_grouping(expr, env, stmt);
         case EXPR_VARIABLE:
@@ -620,6 +787,13 @@ void *evaluate(Expr *expr, Environment *env, struct Stmt *stmt) {
             FunctionValue *fn = callee->as.function;
             // printf("retrieved fn=%p body_count=%d\n", (void*)fn, fn->body_count);
             // fflush(stdout);
+            if (expr->call.arg_count != fn->param_count) {
+                char msg[256];
+                snprintf(msg, sizeof(msg), "Function '%s' expects %d argument(s) but got %d.",
+                         expr->call.name, fn->param_count, expr->call.arg_count);
+                runtime_error(expr->call.name_token, msg, expr->call.name);
+                return NULL;
+            }
             if (fn->static_env == NULL) {
                 // first call — create this function's persistent home for `static` locals
                 fn->static_env = env_create_child(fn->closure);
@@ -691,8 +865,20 @@ void *execute(Stmt *stmt, Environment *env) {
 
     // check the type of the statement and execute it accordingly
     switch (stmt->type) {
-        case STMT_EXPR:
-            return evaluate(stmt->expr_stmt.expr, env, stmt);
+        case STMT_EXPR: {
+            void *result = evaluate(stmt->expr_stmt.expr, env, stmt);
+            // Assignments are statements in spirit even when they end up
+            // parsed as a plain expression-statement (e.g. arr[0] = 5;,
+            // which doesn't match the identifier-then-"=" fast path that
+            // STMT_ASSIGN handles). Stay consistent with STMT_ASSIGN, which
+            // already returns NULL so a top-level "x = 5;" doesn't echo —
+            // "arr[0] = 5;" shouldn't echo either.
+            if (stmt->expr_stmt.expr->type == EXPR_ASSIGN || stmt->expr_stmt.expr->type == EXPR_INDEX_ASSIGN) {
+                free(result);
+                return NULL;
+            }
+            return result;
+        }
         case STMT_VARIABLE_DECLARATION: {
             return eval_variable_declaration(stmt, env);
         }

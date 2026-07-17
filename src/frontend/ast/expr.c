@@ -27,11 +27,12 @@ struct Expr *expr_string(const char *value) {
 }
 
 // Create a new variable expression with the given name and type.
-struct Expr *expr_variable(char *name, LunarisType type) {
+struct Expr *expr_variable(char *name, LunarisType type, Token name_token) {
     struct Expr *e      = malloc(sizeof(struct Expr));
     e->type             = EXPR_VARIABLE;
     e->variable.name    = name;
     e->variable.type    = type;
+    e->variable.name_token = name_token;
     return e;
 }
 
@@ -129,6 +130,26 @@ struct Expr *expr_logical(TokenType op, struct Expr *left, struct Expr *right) {
     return e;
 }
 
+// Create a new array literal expression, e.g. [1, 2, 3]. Takes ownership of
+// the elements array (caller should not free it separately).
+struct Expr *expr_array_literal(struct Expr **elements, int count) {
+    struct Expr *e            = malloc(sizeof(struct Expr));
+    e->type                   = EXPR_ARRAY_LITERAL;
+    e->array_literal.elements = elements;
+    e->array_literal.count    = count;
+    return e;
+}
+
+// Create a new index-assignment expression, e.g. arr[0] = value.
+struct Expr *expr_index_assign(struct Expr *array, struct Expr *index, struct Expr *value) {
+    struct Expr *e         = malloc(sizeof(struct Expr));
+    e->type                = EXPR_INDEX_ASSIGN;
+    e->index_assign.array  = array;
+    e->index_assign.index  = index;
+    e->index_assign.value  = value;
+    return e;
+}
+
 // Free the memory allocated for an expression and its sub-expressions.
 void expr_free(struct Expr *e) {
     if (!e) return;
@@ -176,6 +197,17 @@ void expr_free(struct Expr *e) {
         case EXPR_LOGICAL:
             expr_free(e->logical.left);
             expr_free(e->logical.right);
+            break;
+        case EXPR_ARRAY_LITERAL:
+            for (int i = 0; i < e->array_literal.count; i++) {
+                expr_free(e->array_literal.elements[i]);
+            }
+            free(e->array_literal.elements);
+            break;
+        case EXPR_INDEX_ASSIGN:
+            expr_free(e->index_assign.array);
+            expr_free(e->index_assign.index);
+            expr_free(e->index_assign.value);
             break;
         default:
             break;

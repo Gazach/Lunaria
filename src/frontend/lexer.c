@@ -278,6 +278,8 @@ static void scanToken(Lexer* lexer, TokenArray* tokens) {
         case ')': addToken(lexer, tokens, TOKEN_RIGHT_PAREN); break;
         case '{': addToken(lexer, tokens, TOKEN_LEFT_BRACE); break;
         case '}': addToken(lexer, tokens, TOKEN_RIGHT_BRACE); break;
+        case '[': addToken(lexer, tokens, TOKEN_LEFT_BRACKET); break;
+        case ']': addToken(lexer, tokens, TOKEN_RIGHT_BRACKET); break;
         case ',': addToken(lexer, tokens, TOKEN_COMMA); break;
         case '.': addToken(lexer, tokens, TOKEN_DOT); break;
         case '-': addToken(lexer, tokens, TOKEN_MINUS); break;

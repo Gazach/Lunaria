@@ -22,6 +22,8 @@ typedef enum { //define expression types
     EXPR_TERNARY, // New expression type for ternary operator like condition ? expr1 : expr2
     EXPR_ASSIGN, // New expression type for assignment like a = b
     EXPR_LOGICAL, // New expression type for logical and/or like a && b, a || b (short-circuiting, separate from EXPR_BINARY)
+    EXPR_ARRAY_LITERAL, // New expression type for array literals like [1, 2, 3]
+    EXPR_INDEX_ASSIGN, // New expression type for assigning into an index like arr[0] = 5
 } ExprType;
 
 struct Expr { // define the structure of an expression
@@ -86,6 +88,15 @@ struct Expr { // define the structure of an expression
             struct Expr *left;
             struct Expr *right;
         } logical;
+        struct {
+            struct Expr **elements;
+            int count;
+        } array_literal;
+        struct {
+            struct Expr *array;
+            struct Expr *index;
+            struct Expr *value;
+        } index_assign;
     };
 };
 
@@ -93,7 +104,7 @@ struct Expr { // define the structure of an expression
 void expr_free(struct Expr *expr);
 
 struct Expr *expr_literal(double value, TokenType type);
-struct Expr *expr_variable(char *name, LunarisType type);
+struct Expr *expr_variable(char *name, LunarisType type, Token name_token);
 struct Expr *expr_binary(TokenType op, struct Expr *left, struct Expr *right);
 struct Expr *expr_unary(TokenType op, struct Expr *operand);
 struct Expr *expr_call(char *name, LunarisType return_type, struct Expr **args, int arg_count);
@@ -105,6 +116,8 @@ struct Expr *expr_ternary(struct Expr *condition, struct Expr *then_branch, stru
 struct Expr *expr_string(const char *value);
 struct Expr *expr_boolean(bool value);
 struct Expr *expr_logical(TokenType op, struct Expr *left, struct Expr *right);
+struct Expr *expr_array_literal(struct Expr **elements, int count);
+struct Expr *expr_index_assign(struct Expr *array, struct Expr *index, struct Expr *value);
 
 
 #endif

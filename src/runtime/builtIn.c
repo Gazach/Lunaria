@@ -42,6 +42,7 @@ static Value *builtin_type(Value **args, int arg_count) {
         case TYPE_BOOLEAN:  result->as.string = STRDUP("bool");     break;
         case TYPE_NULL:     result->as.string = STRDUP("null");     break;
         case TYPE_FUNCTION: result->as.string = STRDUP("function"); break;
+        case TYPE_ARRAY:    result->as.string = STRDUP("array");    break;
         default:            result->as.string = STRDUP("unknown");  break;
     }
     return result;
@@ -68,6 +69,49 @@ static Value *builtin_clockMs(Value **args, int arg_count) {
     return result;
 }
 
+// return the number of elements in an array, or the number of characters in
+// a string. This is what makes arrays actually loopable — without it there's
+// no way to know where to stop indexing.
+static Value *builtin_len(Value **args, int arg_count) {
+    if (arg_count != 1) return NULL;
+    Value *result = malloc(sizeof(Value));
+    result->type = TYPE_INT;
+    if (args[0]->type == TYPE_ARRAY) {
+        result->as.int_value = args[0]->as.array->count;
+    } else if (args[0]->type == TYPE_STRING) {
+        result->as.int_value = args[0]->as.string ? (int)strlen(args[0]->as.string) : 0;
+    } else {
+        runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "len() expects an array or a string.", NULL);
+        free(result);
+        return NULL;
+    }
+    return result;
+}
+
+// append a value onto an array in place, Rust's Vec::push style — mutates
+// the array and returns null, rather than returning a new array. Arrays are
+// shared by reference (see eval_variable's shallow copy for TYPE_ARRAY), so
+// this is visible through every alias of the same array, including whatever
+// the array was passed in or returned as.
+static Value *builtin_push(Value **args, int arg_count) {
+    if (arg_count != 2) return NULL;
+    if (args[0]->type != TYPE_ARRAY) {
+        runtime_error((Token){.type = TOKEN_EOF, .line = 0, .literal = "<unknown>"}, "push() expects an array as its first argument.", NULL);
+        return NULL;
+    }
+    ArrayValue *arr = args[0]->as.array;
+    if (arr->count >= arr->capacity) {
+        int newCapacity = arr->capacity == 0 ? 8 : arr->capacity * 2;
+        arr->elements = realloc(arr->elements, newCapacity * sizeof(Value));
+        arr->capacity = newCapacity;
+    }
+    arr->elements[arr->count++] = *args[1];
+
+    Value *result = malloc(sizeof(Value));
+    result->type = TYPE_NULL;
+    return result;
+}
+
 // ========================
 // builtin registry
 // ========================
@@ -84,6 +128,8 @@ static Builtin builtins[] = {
     { "type",    builtin_type    },
     { "clock",   builtin_clock   },
     { "clockMs", builtin_clockMs },
+    { "len",     builtin_len     },
+    { "push",    builtin_push    },
 };
 
 // Get the number of built-in functions in the registry. This will be used to iterate over the built-in functions when looking them up by name. 

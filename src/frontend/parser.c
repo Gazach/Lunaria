@@ -156,7 +156,7 @@ bool check_next(Parser *parser, TokenType type) {
 
 
 // Parse a primary expression, which can be a literal, variable, or parenthesized expression.
-Expr *primary(Parser *parser) {
+Expr *primary_base(Parser *parser) {
     if (match(parser, (TokenType[]){TOKEN_FALSE}, 1)) {
         return expr_boolean(false);
     }
@@ -167,6 +167,7 @@ Expr *primary(Parser *parser) {
         return expr_literal(0, TOKEN_NIL); 
     }
     if (match(parser, (TokenType[]){TOKEN_IDENTIFIER}, 1)) {
+        Token name_token = *previous(parser);
         char *name = STRDUP(previous(parser)->literal);
         if (match(parser, (TokenType[]){TOKEN_LEFT_PAREN}, 1)) {
             // Function call
@@ -189,7 +190,7 @@ Expr *primary(Parser *parser) {
             return expr_call(name, TYPE_FUNCTION, arguments, arg_count);
         } else {
             // Variable
-            return expr_variable(name, TYPE_NULL);
+            return expr_variable(name, TYPE_NULL, name_token);
         }
     }
     if (match(parser, (TokenType[]){TOKEN_INT, TOKEN_FLOAT}, 2)) {
@@ -208,9 +209,45 @@ Expr *primary(Parser *parser) {
         }
         return expr_grouping(expr);
     }
+    if (match(parser, (TokenType[]){TOKEN_LEFT_BRACKET}, 1)) {
+        // Array literal: [1, 2, 3]
+        Expr **elements = NULL;
+        int count = 0;
+        int capacity = 0;
+
+        if (!check(parser, TOKEN_RIGHT_BRACKET)) {
+            do {
+                if (count >= capacity) {
+                    int newCapacity = capacity == 0 ? 8 : capacity * 2;
+                    elements = realloc(elements, newCapacity * sizeof(Expr *));
+                    capacity = newCapacity;
+                }
+                elements[count++] = expression(parser);
+            } while (match(parser, (TokenType[]){TOKEN_COMMA}, 1));
+        }
+
+        consume(parser, TOKEN_RIGHT_BRACKET, "Expected ']' after array elements.");
+        return expr_array_literal(elements, count);
+    }
     // Handle error: expected expression
     parseError(parser, "Expected expression.");
     return NULL;
+}
+
+// Wraps primary_base with a postfix "[index]" loop, so indexing works on
+// anything a primary expression can produce — a variable (arr[0]), a call
+// result (getArr()[0]), a literal ([1,2,3][0]), and chains/nesting
+// (arr[0][1]) all fall out of this for free.
+Expr *primary(Parser *parser) {
+    Expr *expr = primary_base(parser);
+
+    while (match(parser, (TokenType[]){TOKEN_LEFT_BRACKET}, 1)) {
+        Expr *index = expression(parser);
+        consume(parser, TOKEN_RIGHT_BRACKET, "Expected ']' after index.");
+        expr = expr_index(expr, index);
+    }
+
+    return expr;
 }
 
 // Parse a unary expression, which can be a primary expression or a unary operator followed by another unary expression.
@@ -325,19 +362,33 @@ Expr *ternary(Parser *parser) {
     return condition;
 }
 
-// Parse an expression, which can be an equality expression followed by an optional assignment operator and another expression.
+// Parse an expression, which can be a ternary expression followed by an
+// optional assignment operator and another expression. The left-hand side
+// is parsed as a normal expression first, then checked for whether it's a
+// valid assignment target (a bare variable, or an index expression like
+// arr[0]) — anything else after "=" is a parse error.
 Expr *expression(Parser *parser) {
-    // printf("expression: current token type=%d literal=%s\n", 
-    //     peek(parser)->type, peek(parser)->literal ? peek(parser)->literal : "null");
-    // fflush(stdout);
-    if (check(parser, TOKEN_IDENTIFIER) && check_next(parser, TOKEN_EQUAL)) {
-        Token name_token = *peek(parser);
-        advance(parser); // consume identifier
-        advance(parser); // consume =
-        Expr *value = expression(parser);
-        return expr_assign(STRDUP(name_token.literal), name_token, value);
+    Expr *expr = ternary(parser);
+
+    if (match(parser, (TokenType[]){TOKEN_EQUAL}, 1)) {
+        Expr *value = expression(parser); // right-associative: a = b = 5, arr[0] = arr[1] = 5
+
+        if (expr->type == EXPR_VARIABLE) {
+            char *name = expr->variable.name; // take ownership, don't leak the original
+            Token name_token = expr->variable.name_token;
+            free(expr); // free just the shell — its name string now belongs to expr_assign
+            return expr_assign(name, name_token, value);
+        } else if (expr->type == EXPR_INDEX) {
+            Expr *array_expr = expr->index.array;
+            Expr *index_expr = expr->index.index;
+            free(expr); // shell only; array/index sub-expressions transfer to the new node
+            return expr_index_assign(array_expr, index_expr, value);
+        } else {
+            parseError(parser, "Invalid assignment target.");
+            return NULL;
+        }
     }
-    return ternary(parser);
+    return expr;
 }
 
 //====================================================================================================================================================
@@ -642,6 +693,14 @@ Stmt *parse_for(Parser *parser) {
     Stmt *initializer = NULL;
     if (!check(parser, TOKEN_SEMICOLON)) {
         initializer = Declaration(parser);
+        // A for-loop's own control variable has to be mutable for the
+        // increment clause to ever work — force it regardless of whether
+        // "mut" was written, since `for (let i = 0; ...; i = i + 1)`
+        // would otherwise fail on the very first increment and the loop
+        // would never terminate (the condition never changes).
+        if (initializer != NULL && initializer->type == STMT_VARIABLE_DECLARATION) {
+            initializer->variable_declaration_stmt.variable->modifiers |= MODIFIER_MUTABLE;
+        }
     } else {
         match(parser, (TokenType[]){TOKEN_SEMICOLON}, 1); // consume the semicolon if there's no initializer
     }
